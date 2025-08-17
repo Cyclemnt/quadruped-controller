@@ -1,6 +1,6 @@
 # Quadruped Robot Controller
 
-A C++ project for controlling a 4-legged quadruped robot with 3 degrees of freedom per leg. This project includes inverse kinematics, smooth interpolation for movement, and support for real-time control using a PCA9685 PWM driver.
+A C++ controller for a 4-legged quadruped robot with 3 degrees of freedom per leg. This project includes inverse kinematics, smooth interpolation for movement, and will soon support real-time control using a PCA9685 PWM driver.
 
 ## Project Structure
 
@@ -26,7 +26,7 @@ A C++ project for controlling a 4-legged quadruped robot with 3 degrees of freed
 ## Features
 
 * Individual control of all four legs (FL, FR, RR, RL).
-* Smooth motion via linear interpolation and lift trajectory for leg clearance..
+* Smooth motion via linear interpolation and lift trajectory for leg clearance.
 * Inverse and forward kinematics implementations.
 * Mechanical offset compensation for servo alignment.
 * Core movement primitives:
@@ -95,6 +95,7 @@ int main() {
 * Implement trot gait cycle.
 * Add directional turning (turn left/right).
 * Include IMU.
+* Implement real-time control.
 
 ## Contributions
 

@@ -37,6 +37,7 @@ public:
 
     void sit(bool down);
     void walk();
+    void run();
     void turn();
 
     std::array<float, 3> getLegPosition(LegID id) const;

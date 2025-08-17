@@ -182,6 +182,43 @@ void Robot::walk() {
     }
 }
 
+void Robot::run() {
+    float h = -100;
+    float dx = 100;     // Distance from body to end of leg on the sides
+    float dy = -25;     // Distance the leg gets under body front/back
+    float stride = 125; // Distance a step adds
+    float shift = stride - dx - dy; // Distance a shift covers
+
+    // Initial position
+    std::vector<std::pair<LegID, std::array<float, 3>>> targetFlats = {
+        {LegID::FL, {dx, dx, h}}, // FL
+        {LegID::FR, {dx, dx, h}}, // FR
+        {LegID::RR, {dx, dx, h}}, // RR
+        {LegID::RL, {dx, dx, h}}  // RL
+    };
+    moveLegs({}, targetFlats, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    // Gait algorithm
+    for (int i = 0; i < 2; ++i) {
+        moveLegs({{LegID::FL, {stride, dx, h}}, {LegID::RR, {dy, -dx, h}}},
+                 {{LegID::FR, {-dy, -dx, h}}, {LegID::RL, {-stride, dx, h}}}, 1, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
+                 {{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}}, 0, 20.0f, 20);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        moveLegs({{LegID::FR, {stride, -dx, h}}, {LegID::RL, {dy, dx, h}}},
+                 {{LegID::FL, {-dy, dx, h}}, {LegID::RR, {-stride, -dx, h}}}, 1, 20.0f, 20);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
+                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, 20.0f, 20);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
+
 // Turn left
 void Robot::turn() {
     rest();
