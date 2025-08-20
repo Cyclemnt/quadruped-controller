@@ -16,6 +16,8 @@ public:
     PCA9685();
     ~PCA9685();
 
+    void initialize() const;
+
     void setPWM(int channel, int on, int off) const;
     void disableAllPWM() const;
 };

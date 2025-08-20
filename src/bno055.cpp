@@ -19,45 +19,42 @@ BNO055::BNO055() {
     fd = open("/dev/i2c-1", O_RDWR);
     if (fd < 0) throw std::runtime_error("Failed to open I2C bus");
 
-    if (ioctl(fd, I2C_SLAVE, address) < 0)
+    if (ioctl(fd, I2C_SLAVE, address) < 0) {
         close(fd);
         throw std::runtime_error("Failed to set I2C address");
+    }
+
+    initialize();
 }
 
 BNO055::~BNO055() {
     close(fd);
 }
 
-bool BNO055::write8(uint8_t reg, uint8_t value) {
-    uint8_t buffer[2] = { reg, value };
-    return (write(fd, buffer, 2) == 2);
+// Write value into register
+void BNO055::writeRegister(uint8_t reg, uint8_t value) const {
+    uint8_t buffer[2] = {reg, value};
+    if (write(fd, buffer, 2) != 2) {
+        throw std::runtime_error("I2C: Failed to write");
+    }
 }
 
-bool BNO055::readLen(uint8_t reg, uint8_t* buffer, uint8_t len) {
+bool BNO055::readLen(uint8_t reg, uint8_t* buffer, uint8_t len) const {
     if (write(fd, &reg, 1) != 1) return false;
     return (read(fd, buffer, len) == len);
 }
 
-bool BNO055::begin() {
-    // Mode config
-    write8(BNO055_OPR_MODE, 0x00);
+void BNO055::initialize() const {
+    writeRegister(BNO055_OPR_MODE, 0x00);  // Mode config
     usleep(20000);
-
-    // Normal power mode
-    write8(BNO055_PWR_MODE, 0x00);
+    writeRegister(BNO055_PWR_MODE, 0x00);  // Normal power mode
     usleep(10000);
-
-    // Page 0
-    write8(BNO055_PAGE_ID, 0x00);
-
-    // NDOF fusion mode
-    write8(BNO055_OPR_MODE, 0x0C);
+    writeRegister(BNO055_PAGE_ID, 0x00);   // Page 0
+    writeRegister(BNO055_OPR_MODE, 0x0C);  // NDOF fusion mode
     usleep(20000);
-
-    return true;
 }
 
-std::array<float, 3> BNO055::getEuler() {
+std::array<float, 3> BNO055::getEuler() const {
     uint8_t buffer[6];
     if (!readLen(BNO055_EULER_H_LSB, buffer, 6))
         throw std::runtime_error("Failed to read Euler angles");
@@ -69,7 +66,7 @@ std::array<float, 3> BNO055::getEuler() {
     return { heading / 16.0f, roll / 16.0f, pitch / 16.0f };
 }
 
-std::array<float, 3> BNO055::getAccel() {
+std::array<float, 3> BNO055::getAccel() const {
     uint8_t buffer[6];
     if (!readLen(BNO055_ACCEL_DATA_X_LSB, buffer, 6))
         throw std::runtime_error("Failed to read Accel");
@@ -81,7 +78,7 @@ std::array<float, 3> BNO055::getAccel() {
     return { x / 100.0f, y / 100.0f, z / 100.0f };
 }
 
-std::array<float, 3> BNO055::getGyro() {
+std::array<float, 3> BNO055::getGyro() const {
     uint8_t buffer[6];
     if (!readLen(BNO055_GYRO_DATA_X_LSB, buffer, 6))
         throw std::runtime_error("Failed to read Gyro");

@@ -16,13 +16,7 @@ PCA9685::PCA9685() {
         throw std::runtime_error("Failed to set I2C address");
     }
 
-    writeRegister(MODE1, 0x10);       // Sleep
-    writeRegister(PRESCALE, 121);     // 50 Hz
-    writeRegister(MODE1, 0x00);
-    usleep(500);
-    writeRegister(MODE1, 0xA1);       // Auto-increment
-    
-    disableAllPWM();
+    initialize();
 }
 
 PCA9685::~PCA9685() {
@@ -34,8 +28,19 @@ PCA9685::~PCA9685() {
 void PCA9685::writeRegister(uint8_t reg, uint8_t value) const {
     uint8_t buffer[2] = {reg, value};
     if (write(fd, buffer, 2) != 2) {
-        throw std::runtime_error("Erreur écriture I2C");
+        throw std::runtime_error("I2C: Failed to write");
     }
+}
+
+// Initialize the chip
+void PCA9685::initialize() const {
+    writeRegister(MODE1, 0x10);       // Sleep
+    writeRegister(PRESCALE, 121);     // 50 Hz
+    writeRegister(MODE1, 0x00);
+    usleep(500);
+    writeRegister(MODE1, 0xA1);       // Auto-increment
+    
+    disableAllPWM();
 }
 
 // Send PWM signal to specific channel
