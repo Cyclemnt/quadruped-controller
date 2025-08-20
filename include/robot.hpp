@@ -3,6 +3,7 @@
 
 #include "leg.hpp"
 #include "pca9685.hpp"
+#include "bno055.hpp"
 #include <array>
 #include <vector>
 
@@ -13,9 +14,10 @@
 class Robot {
 private:
     std::array<Leg, 4> legs;
+    BNO055* imu;
 
 public:
-    Robot(PCA9685* driver);
+    Robot(PCA9685* driver, BNO055* imu_ = nullptr);
     ~Robot();
 
     void transformXY(LegID id, float& x, float& y) const;
@@ -39,6 +41,8 @@ public:
     void walk();
     void run();
     void turn();
+
+    std::array<float, 3> getOrientation(); // heading, roll, pitch
 
     std::array<float, 3> getLegPosition(LegID id) const;
     std::array<std::array<float, 3>, 4> getLegsPositions() const;

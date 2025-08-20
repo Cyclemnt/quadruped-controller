@@ -15,6 +15,7 @@ set(SOURCES
     src/leg.cpp
     src/robot.cpp
     src/kinematics.cpp
+    src/bno055.cpp
 )
 
 set(HEADERS
@@ -23,6 +24,7 @@ set(HEADERS
     include/leg.hpp
     include/robot.hpp
     include/kinematics.hpp
+    include/bno055.hpp
 )
 
 set(CMAKE_BUILD_TYPE Debug) 

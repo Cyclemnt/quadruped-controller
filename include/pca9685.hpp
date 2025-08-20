@@ -5,8 +5,8 @@
 
 class PCA9685 {
 private:
-    int fd;
-    const uint8_t address = 0x40;
+    int fd; // File descriptor
+    const uint8_t address = 0x40; // I²C address
     const uint8_t MODE1 = 0x00;
     const uint8_t PRESCALE = 0xFE;
 

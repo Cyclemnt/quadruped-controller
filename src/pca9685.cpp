@@ -9,11 +9,11 @@
 PCA9685::PCA9685() {
     fd = open("/dev/i2c-1", O_RDWR);
     if (fd < 0)
-        throw std::runtime_error("Erreur ouverture I2C");
+        throw std::runtime_error("Failed to open I2C bus");
 
     if (ioctl(fd, I2C_SLAVE, address) < 0) {
         close(fd);
-        throw std::runtime_error("Erreur sélection I2C");
+        throw std::runtime_error("Failed to set I2C address");
     }
 
     writeRegister(MODE1, 0x10);       // Sleep

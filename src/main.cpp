@@ -1,4 +1,5 @@
 #include "../include/pca9685.hpp"
+#include "../include/bno055.hpp"
 #include "../include/robot.hpp"
 #include <iostream>
 #include <chrono>
@@ -6,19 +7,22 @@
 
 int main() {
     PCA9685 driver;
-    Robot steve(&driver);
+    BNO055 imu;
+    Robot steve(&driver, &imu);
     
     steve.rest();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(6000));
+    for (int i = 0; i < 1000; i++) {
+        auto orientation = steve.getOrientation();
+        std::cout << "Heading: " << orientation[0]
+                << " Roll: " << orientation[1]
+                << " Pitch: " << orientation[2] << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
 
-    steve.walk();
-    steve.rest();
     std::this_thread::sleep_for(std::chrono::milliseconds(30000));
 
     driver.disableAllPWM();
 
-    return 0;
-    
     return 0;
 }

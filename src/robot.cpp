@@ -4,18 +4,21 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <stdexcept>
 
-Robot::Robot(PCA9685* driver)
+Robot::Robot(PCA9685* driver, BNO055* imu_)
     : legs{{
             Leg(LegID::FL, driver, {0, 1, 2}),
             Leg(LegID::FR, driver, {3, 4, 5}),
             Leg(LegID::RR, driver, {6, 7, 8}),
             Leg(LegID::RL, driver, {9,10,11})
-        }} {}
+        }},
+      imu(imu_) {}
 
 Robot::~Robot() {
     for (int i = 0; i < legs.size(); i++)
         legs[i].~Leg();
+    if (imu != nullptr) imu->~BNO055();
 }
 
 // Transform (x, y) to match the leg's coordinate system
@@ -228,6 +231,11 @@ void Robot::turn() {
         rotateLegs(a, b, 15.0f); // FL and RR lifted and going clockwise
         rotateLegs(b, a, 15.0f); // FR and RL lifted and going clockwise
     }
+}
+
+std::array<float, 3> Robot::getOrientation() {
+    if (!imu) throw std::runtime_error("IMU not initialized");
+    return imu->getEuler();
 }
 
 std::array<float, 3> Robot::getLegPosition(LegID id) const {
