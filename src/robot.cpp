@@ -5,6 +5,7 @@
 #include <chrono>
 #include <thread>
 #include <stdexcept>
+#include <iostream>
 
 Robot::Robot(PCA9685* driver, BNO055* imu_)
     : legs{{
@@ -233,21 +234,29 @@ void Robot::turn() {
     }
 }
 
+float Robot::normalizeAngle(float angle) {
+    while (angle > 180.0f) angle -= 360.0f;
+    while (angle <= -180.0f) angle += 360.0f;
+    return angle;
+}
+
 // Try to stay at level
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
 
     // Read orientation (roll, pitch, yaw)
     auto euler = imu->getEuler();
-    float roll = euler[0];   // °
-    float pitch = euler[1];
+    float roll = normalizeAngle(euler[2] - 180);   // °
+    float pitch = normalizeAngle(euler[1]);
+
+std::cout << " Roll: " << roll << "\tPitch: " << pitch << std::endl;
 
     // Errors
-    float e_roll = -roll;   // trying to stay at 0
+    float e_roll = roll;   // trying to stay at 0
     float e_pitch = -pitch;
 
     // Correction gain (to modify)
-    float k = 0.1f; // mm/°
+    float k = 2.0f; // mm/°
 
     // z correction for every leg
     std::array<float, 4> zOffset;
@@ -262,11 +271,12 @@ void Robot::level() {
     for (int i = 0; i < 4; ++i) {
         auto p = pStart[i];
         p[2] += zOffset[i]; // vertical adjustment
+        p[2] = std::clamp(p[2], -220.0f - 30.0f, 220.0f + 100.0f);
         targets.push_back({static_cast<LegID>(i), p});
     }
 
     // Move legs to new position
-    moveLegs({}, targets, false, 0, 5);
+    moveLegs({}, targets, false, 1, 10);
 }
 
 

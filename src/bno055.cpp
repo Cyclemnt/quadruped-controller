@@ -8,6 +8,7 @@
 #define BNO055_OPR_MODE      0x3D
 #define BNO055_SYS_TRIGGER   0x3F
 #define BNO055_UNIT_SEL      0x3B
+#define BNO055_CALIB_STAT    0x35
 #define BNO055_EULER_H_LSB   0x1A
 #define BNO055_ACCEL_DATA_X_LSB 0x08
 #define BNO055_GYRO_DATA_X_LSB  0x14
@@ -76,7 +77,7 @@ void BNO055::initialize() const {
     usleep(20000);
 
     // System status verification
-    uint8_t sysStatus = read8(0x39);
+    uint8_t sysStatus = read8(BNO055_CALIB_STAT);
     if (sysStatus != 0x05)
         std::cerr << "Warning: BNO055 system not fully initialized (status=" 
                   << static_cast<int>(sysStatus) << ")" << std::endl;

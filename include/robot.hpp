@@ -42,6 +42,7 @@ public:
     void run();
     void turn();
 
+    float normalizeAngle(float angle);
     void level();
 
     std::array<float, 3> getOrientation(); // heading, roll, pitch
