@@ -13,11 +13,7 @@ int main() {
     steve.rest();
 
     for (int i = 0; i < 100000; i++) {
-        auto orientation = steve.getOrientation();
-        std::cout << "Heading: " << orientation[0]
-                << " Roll: " << orientation[1]
-                << " Pitch: " << orientation[2] << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        steve.level();
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30000));

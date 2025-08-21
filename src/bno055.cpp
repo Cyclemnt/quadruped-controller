@@ -6,9 +6,8 @@
 #include <iostream>
 
 #define BNO055_OPR_MODE      0x3D
-#define BNO055_PAGE_ID       0x07
-#define BNO055_PWR_MODE      0x3E
 #define BNO055_SYS_TRIGGER   0x3F
+#define BNO055_UNIT_SEL      0x3B
 #define BNO055_EULER_H_LSB   0x1A
 #define BNO055_ACCEL_DATA_X_LSB 0x08
 #define BNO055_GYRO_DATA_X_LSB  0x14
@@ -49,7 +48,7 @@ bool BNO055::readLen(uint8_t reg, uint8_t* buffer, uint8_t len) const {
 
 void BNO055::initialize() const {
     // Config mode
-    write8(0x3D, 0x00);
+    write8(BNO055_OPR_MODE, 0x00);
     usleep(20000);
 
     // Verify chip ID
@@ -58,7 +57,7 @@ void BNO055::initialize() const {
         throw std::runtime_error("BNO055 not detected (wrong chip ID)");
 
     // Sensor reset
-    write8(0x3F, 0x20);
+    write8(BNO055_SYS_TRIGGER, 0x20);
     usleep(650000); // 650ms pour redémarrer
 
     // Wait for ID availability
@@ -66,14 +65,14 @@ void BNO055::initialize() const {
         usleep(10000);
 
     // Degrees unit
-    write8(0x3B, 0x00);
+    write8(BNO055_UNIT_SEL, 0x00);
 
     // Activate external crystal
-    write8(0x3F, 0x80);
+    write8(BNO055_SYS_TRIGGER, 0x80);
     usleep(10000);
 
     // NDOF mode
-    write8(0x3D, 0x0C);
+    write8(BNO055_OPR_MODE, 0x0C);
     usleep(20000);
 
     // System status verification

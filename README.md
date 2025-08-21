@@ -42,6 +42,7 @@ A C++ controller for a 4-legged quadruped robot with 3 degrees of freedom per le
 * **C++17** or later.
 * **PCA9685 driver** to control servo motors via I2C.
 * **Raspberry Pi** (or compatible) to run the software and interface with the PCA9685 board.
+* **BNO055 imu** to measure orientation.
 * **[CMake](https://cmake.org/)** to configure and build the project.
 
 ## Building the Project

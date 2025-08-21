@@ -233,6 +233,43 @@ void Robot::turn() {
     }
 }
 
+// Try to stay at level
+void Robot::level() {
+    if (!imu) throw std::runtime_error("IMU not initialized");
+
+    // Read orientation (roll, pitch, yaw)
+    auto euler = imu->getEuler();
+    float roll = euler[0];   // °
+    float pitch = euler[1];
+
+    // Errors
+    float e_roll = -roll;   // trying to stay at 0
+    float e_pitch = -pitch;
+
+    // Correction gain (to modify)
+    float k = 0.1f; // mm/°
+
+    // z correction for every leg
+    std::array<float, 4> zOffset;
+    zOffset[static_cast<int>(LegID::FL)] = -k * e_pitch + k * e_roll; // FL
+    zOffset[static_cast<int>(LegID::FR)] = -k * e_pitch - k * e_roll; // FR
+    zOffset[static_cast<int>(LegID::RR)] =  k * e_pitch - k * e_roll; // RR
+    zOffset[static_cast<int>(LegID::RL)] =  k * e_pitch + k * e_roll; // RL
+
+    // Apply corrections
+    auto pStart = getLegsPositions();
+    std::vector<std::pair<LegID, std::array<float,3>>> targets;
+    for (int i = 0; i < 4; ++i) {
+        auto p = pStart[i];
+        p[2] += zOffset[i]; // vertical adjustment
+        targets.push_back({static_cast<LegID>(i), p});
+    }
+
+    // Move legs to new position
+    moveLegs({}, targets, false, 0, 5);
+}
+
+
 std::array<float, 3> Robot::getOrientation() {
     if (!imu) throw std::runtime_error("IMU not initialized");
     return imu->getEuler();

@@ -42,6 +42,8 @@ public:
     void run();
     void turn();
 
+    void level();
+
     std::array<float, 3> getOrientation(); // heading, roll, pitch
 
     std::array<float, 3> getLegPosition(LegID id) const;
