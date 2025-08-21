@@ -9,7 +9,8 @@ private:
     int fd; // File descriptor
     const uint8_t address = 0x28; // I²C address
 
-    void writeRegister(uint8_t reg, uint8_t value) const;
+    void write8(uint8_t reg, uint8_t value) const;
+    uint8_t read8(uint8_t reg) const;
     bool readLen(uint8_t reg, uint8_t* buffer, uint8_t len) const;
 
 public:

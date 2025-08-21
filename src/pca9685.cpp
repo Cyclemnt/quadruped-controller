@@ -1,5 +1,4 @@
 #include "../include/pca9685.hpp"
-#include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -25,20 +24,19 @@ PCA9685::~PCA9685() {
 }
 
 // Write value into register
-void PCA9685::writeRegister(uint8_t reg, uint8_t value) const {
+void PCA9685::write8(uint8_t reg, uint8_t value) const {
     uint8_t buffer[2] = {reg, value};
-    if (write(fd, buffer, 2) != 2) {
+    if (write(fd, buffer, 2) != 2)
         throw std::runtime_error("I2C: Failed to write");
-    }
 }
 
 // Initialize the chip
 void PCA9685::initialize() const {
-    writeRegister(MODE1, 0x10);       // Sleep
-    writeRegister(PRESCALE, 121);     // 50 Hz
-    writeRegister(MODE1, 0x00);
+    write8(MODE1, 0x10);       // Sleep
+    write8(PRESCALE, 121);     // 50 Hz
+    write8(MODE1, 0x00);
     usleep(500);
-    writeRegister(MODE1, 0xA1);       // Auto-increment
+    write8(MODE1, 0xA1);       // Auto-increment
     
     disableAllPWM();
 }

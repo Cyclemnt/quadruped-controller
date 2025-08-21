@@ -10,7 +10,7 @@ private:
     const uint8_t MODE1 = 0x00;
     const uint8_t PRESCALE = 0xFE;
 
-    void writeRegister(uint8_t reg, uint8_t value) const;
+    void write8(uint8_t reg, uint8_t value) const;
 
 public:
     PCA9685();
