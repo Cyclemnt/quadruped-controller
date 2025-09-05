@@ -205,21 +205,22 @@ void Robot::run() {
 
     // Gait algorithm
     for (int i = 0; i < 2; ++i) {
-        moveLegs({{LegID::FL, {stride, dx, h}}, {LegID::RR, {dy, -dx, h}}},
-                 {{LegID::FR, {-dy, -dx, h}}, {LegID::RL, {-stride, dx, h}}}, 1, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
+        
+        moveLegs({{LegID::FL, {dx + 25, dx, h}}, {LegID::RR, {dx - 25, dx, h}}},
+                 {{LegID::FR, {dx, dx - 25, h}}, {LegID::RL, {dx, dx + 25, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
         moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
-                 {{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}}, 0, 20.0f, 20);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-        moveLegs({{LegID::FR, {stride, -dx, h}}, {LegID::RL, {dy, dx, h}}},
-                 {{LegID::FL, {-dy, dx, h}}, {LegID::RR, {-stride, -dx, h}}}, 1, 20.0f, 20);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
+                 {{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
+        moveLegs({{LegID::FR, {dx, dx + 25, h}}, {LegID::RL, {dx, dx - 25, h}}},
+                 {{LegID::FL, {dx - 25, dx, h}}, {LegID::RR, {dx + 25, dx, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
         moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
-                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, 20.0f, 20);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
@@ -252,7 +253,7 @@ void Robot::level() {
 std::cout << " Roll: " << roll << "\tPitch: " << pitch << std::endl;
 
     // Errors
-    float e_roll = roll;   // trying to stay at 0
+    float e_roll = -roll;   // trying to stay at 0
     float e_pitch = -pitch;
 
     // Correction gain (to modify)
@@ -260,30 +261,24 @@ std::cout << " Roll: " << roll << "\tPitch: " << pitch << std::endl;
 
     // z correction for every leg
     std::array<float, 4> zOffset;
-    zOffset[static_cast<int>(LegID::FL)] = -k * e_pitch + k * e_roll; // FL
-    zOffset[static_cast<int>(LegID::FR)] = -k * e_pitch - k * e_roll; // FR
-    zOffset[static_cast<int>(LegID::RR)] =  k * e_pitch - k * e_roll; // RR
-    zOffset[static_cast<int>(LegID::RL)] =  k * e_pitch + k * e_roll; // RL
+    zOffset[static_cast<int>(LegID::FL)] = -k * e_pitch - k * e_roll; // FL
+    zOffset[static_cast<int>(LegID::FR)] = -k * e_pitch + k * e_roll; // FR
+    zOffset[static_cast<int>(LegID::RR)] =  k * e_pitch + k * e_roll; // RR
+    zOffset[static_cast<int>(LegID::RL)] =  k * e_pitch - k * e_roll; // RL
 
     // Apply corrections
     auto pStart = getLegsPositions();
     std::vector<std::pair<LegID, std::array<float,3>>> targets;
     for (int i = 0; i < 4; ++i) {
         auto p = pStart[i];
-        p[2] += zOffset[i]; // vertical adjustment
-        p[2] = std::clamp(p[2], -220.0f - 30.0f, 220.0f + 100.0f);
+        p[2] += zOffset[i]; // Vertical adjustment
+        p[2] = std::clamp(p[2], -220.0f - 30.0f, 220.0f + 100.0f); // Need something else
         targets.push_back({static_cast<LegID>(i), p});
     }
 
     // Move legs to new position
-    moveLegs({}, targets, false, 1, 10);
-}
-
-
-std::array<float, 3> Robot::getOrientation() {
-    if (!imu) throw std::runtime_error("IMU not initialized");
-    return imu->getEuler();
-}
+    moveLegs({}, targets, false, 1, 10); // Try to lower points
+} // Need to find the floor to individually manage legs
 
 std::array<float, 3> Robot::getLegPosition(LegID id) const {
     std::array<float, 3> p;

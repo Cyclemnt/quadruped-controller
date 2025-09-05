@@ -45,8 +45,6 @@ public:
     float normalizeAngle(float angle);
     void level();
 
-    std::array<float, 3> getOrientation(); // heading, roll, pitch
-
     std::array<float, 3> getLegPosition(LegID id) const;
     std::array<std::array<float, 3>, 4> getLegsPositions() const;
 };
