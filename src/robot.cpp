@@ -205,7 +205,7 @@ void Robot::run() {
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // Gait algorithm
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 20; ++i) {
         moveLegs({{LegID::FL, {dx + step, dx, h}}, {LegID::RR, {dx - step, dx, h}}},
                  {{LegID::FR, {dx, dx - step, h}}, {LegID::RL, {dx, dx + step, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},

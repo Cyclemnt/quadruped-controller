@@ -20,13 +20,18 @@
 #define WALKING_LEG_DISTANCE_ALLOWED_BETWEEN_FRONT_AND_BACK 0
 
 // Running gait parameters
-#define RUNNING_BODY_HEIGHT -100.0f
+#define RUNNING_BODY_HEIGHT -120.0f
 #define RUNNING_LEG_DISTANCE_FROM_BODY 100.0f
-#define RUNNING_STEP_SIZE 25.0f
+#define RUNNING_STEP_SIZE 3.0f
 #define RUNNING_STEP_HEIGHT 30.0f
-#define RUNNING_POINTS_PER_MOVEMENT 8
+#define RUNNING_POINTS_PER_MOVEMENT 7
 
 // Turning gait parameter
 #define TURNING_ANGLE_A_STEP_COVERS 15.0f
+
+// Level keeping controller parameters
+#define LEVELING_P 2.0f
+#define LEVELING_I 0.0f
+#define LEVELING_D 0.5f
 
 #endif // CONSTANTS_HPP

@@ -4,6 +4,7 @@
 #include "leg.hpp"
 #include "pca9685.hpp"
 #include "bno055.hpp"
+#include "constants.hpp"
 #include <array>
 #include <vector>
 #include <chrono>
@@ -29,8 +30,8 @@ private:
     std::array<Leg, 4> legs;
     BNO055* imu;
 
-    PID pidRoll{2.0f, 0.0f, 0.5f};   // valeurs à tuner
-    PID pidPitch{2.0f, 0.0f, 0.5f};
+    PID pidRoll{LEVELING_P, LEVELING_I, LEVELING_D};   // valeurs à tuner
+    PID pidPitch{LEVELING_P, LEVELING_I, LEVELING_D};
 
     std::chrono::steady_clock::time_point lastUpdate;
 
