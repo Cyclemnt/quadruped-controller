@@ -25,6 +25,7 @@ set(HEADERS
     include/robot.hpp
     include/kinematics.hpp
     include/bno055.hpp
+    include/constants.hpp
 )
 
 set(CMAKE_BUILD_TYPE Debug) 

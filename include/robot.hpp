@@ -6,15 +6,33 @@
 #include "bno055.hpp"
 #include <array>
 #include <vector>
+#include <chrono>
 
-#define STANDARD_HEIGHT -170.0f
-#define STANDARD_HEIGHT_2 -90.0f
-#define STANDARD_DELAY 20
+struct PID {
+    float kp, ki, kd;
+    float integral;
+    float prevError;
+
+    PID(float p=1.0f, float i=0.0f, float d=0.0f)
+        : kp(p), ki(i), kd(d), integral(0), prevError(0) {}
+
+    float update(float error, float dt) {
+        integral += error * dt;
+        float derivative = (error - prevError) / dt;
+        prevError = error;
+        return kp * error + ki * integral + kd * derivative;
+    }
+};
 
 class Robot {
 private:
     std::array<Leg, 4> legs;
     BNO055* imu;
+
+    PID pidRoll{2.0f, 0.0f, 0.5f};   // valeurs à tuner
+    PID pidPitch{2.0f, 0.0f, 0.5f};
+
+    std::chrono::steady_clock::time_point lastUpdate;
 
 public:
     Robot(PCA9685* driver, BNO055* imu_ = nullptr);

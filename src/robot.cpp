@@ -1,5 +1,6 @@
 #include "../include/robot.hpp"
 #include "../include/kinematics.hpp"
+#include "../include/constants.hpp"
 #include <cmath>
 #include <algorithm>
 #include <chrono>
@@ -124,14 +125,14 @@ void Robot::resetLegs() {
 
 // Standard stance
 void Robot::rest() {
-    std::array<float, 3> p = {100, 100, -220};
+    std::array<float, 3> p = {RESTING_X, RESTING_Y, RESTING_H};
     std::vector<std::pair<LegID, std::array<float, 3>>> targets = {{LegID::FL, p}, {LegID::FR, p}, {LegID::RR, p}, {LegID::RL, p}};
     moveLegs({}, targets, false, 0, 1);
 }
 
 // Sit (change height)
 void Robot::sit(bool down) {
-    float zTarget = down ? -120.0f : STANDARD_HEIGHT;
+    float zTarget = down ? SITTING_LOWER_HEIGHT : SITTING_HIGHER_HEIGHT;
 
     std::array<std::array<float, 3>, 4> pStart = getLegsPositions();
     std::array<std::array<float, 3>, 4> pTargets;
@@ -147,9 +148,9 @@ void Robot::sit(bool down) {
 
 // Walk forward
 void Robot::walk() {
-    float h = STANDARD_HEIGHT;
-    float dx = 100;     // Distance from body to end of leg on the sides
-    float dy = 0;       // Distance the leg gets under body front/back
+    float h = WALKING_BODY_HEIGHT;
+    float dx = WALKING_LEG_DISTANCE_FROM_BODY;  // Distance from body to end of leg on the sides
+    float dy = WALKING_LEG_DISTANCE_ALLOWED_BETWEEN_FRONT_AND_BACK;  // Distance the leg gets under body front/back
     float stride = 2 * dx + 2 * dy; // Distance a step adds
     float shift = stride - dx - dy; // Distance a shift covers
 
@@ -187,11 +188,11 @@ void Robot::walk() {
 }
 
 void Robot::run() {
-    float h = -100;
-    float dx = 100;     // Distance from body to end of leg on the sides
-    float dy = -25;     // Distance the leg gets under body front/back
-    float stride = 125; // Distance a step adds
-    float shift = stride - dx - dy; // Distance a shift covers
+    constexpr float h = RUNNING_BODY_HEIGHT;
+    constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
+    constexpr float step = RUNNING_STEP_SIZE;  // Distance a steps adds
+    constexpr float stepHeight = RUNNING_STEP_HEIGHT;
+    constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
 
     // Initial position
     std::vector<std::pair<LegID, std::array<float, 3>>> targetFlats = {
@@ -205,33 +206,30 @@ void Robot::run() {
 
     // Gait algorithm
     for (int i = 0; i < 2; ++i) {
-        
-        moveLegs({{LegID::FL, {dx + 25, dx, h}}, {LegID::RR, {dx - 25, dx, h}}},
-                 {{LegID::FR, {dx, dx - 25, h}}, {LegID::RL, {dx, dx + 25, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
-                 {{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        moveLegs({{LegID::FR, {dx, dx + 25, h}}, {LegID::RL, {dx, dx - 25, h}}},
-                 {{LegID::FL, {dx - 25, dx, h}}, {LegID::RR, {dx + 25, dx, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
-                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, 20.0f, 20); // MAYBE NOT MOVE FORWARD WHILE LEGS IN AIR
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        moveLegs({{LegID::FL, {dx + step, dx, h}}, {LegID::RR, {dx - step, dx, h}}},
+                 {{LegID::FR, {dx, dx - step, h}}, {LegID::RL, {dx, dx + step, h}}}, 0, stepHeight, pointsPerMovement);
+//        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
+//                 {{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
+        moveLegs({{LegID::FR, {dx, dx + step, h}}, {LegID::RL, {dx, dx - step, h}}},
+                 {{LegID::FL, {dx - step, dx, h}}, {LegID::RR, {dx + step, dx, h}}}, 0, stepHeight, pointsPerMovement);
+//        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
+//                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
     }
+    
+    moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
+             {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
 }
 
 // Turn left
 void Robot::turn() {
+    constexpr float angle = TURNING_ANGLE_A_STEP_COVERS;
+
     rest();
     std::vector<LegID> a = {LegID::FL, LegID::RR};
     std::vector<LegID> b = {LegID::FR, LegID::RL};
     for (int i = 0; i < 5; ++i) {
-        rotateLegs(a, b, 15.0f); // FL and RR lifted and going clockwise
-        rotateLegs(b, a, 15.0f); // FR and RL lifted and going clockwise
+        rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
+        rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
     }
 }
 
@@ -242,6 +240,7 @@ float Robot::normalizeAngle(float angle) {
 }
 
 // Try to stay at level
+/*  OLD FUNCTION
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
 
@@ -279,6 +278,49 @@ std::cout << " Roll: " << roll << "\tPitch: " << pitch << std::endl;
     // Move legs to new position
     moveLegs({}, targets, false, 1, 10); // Try to lower points
 } // Need to find the floor to individually manage legs
+*/
+void Robot::level() {
+    if (!imu) throw std::runtime_error("IMU not initialized");
+
+    // Mesure orientation
+    auto euler = imu->getEuler();
+    float roll  = normalizeAngle(euler[2] - 180); // °
+    float pitch = normalizeAngle(euler[1]);
+
+    // Erreurs
+    float e_roll  = -roll;
+    float e_pitch = -pitch;
+
+    // Δt depuis le dernier appel
+    auto now = std::chrono::steady_clock::now();
+    float dt = std::chrono::duration<float>(now - lastUpdate).count();
+    if (dt <= 0) dt = 0.01f; // sécurité
+    lastUpdate = now;
+
+    // PID correction
+    float c_roll  = pidRoll.update(e_roll, dt);
+    float c_pitch = pidPitch.update(e_pitch, dt);
+
+    // z correction par patte
+    std::array<float, 4> zOffset;
+    zOffset[static_cast<int>(LegID::FL)] = -c_pitch - c_roll;
+    zOffset[static_cast<int>(LegID::FR)] = -c_pitch + c_roll;
+    zOffset[static_cast<int>(LegID::RR)] =  c_pitch + c_roll;
+    zOffset[static_cast<int>(LegID::RL)] =  c_pitch - c_roll;
+
+    // Appliquer
+    auto pStart = getLegsPositions();
+    std::vector<std::pair<LegID, std::array<float,3>>> targets;
+    for (int i = 0; i < 4; ++i) {
+        auto p = pStart[i];
+        p[2] += zOffset[i];
+        p[2] = std::clamp(p[2], -250.0f, 250.0f); // limites sécurisées
+        targets.push_back({static_cast<LegID>(i), p});
+    }
+
+    moveLegs({}, targets, false, 0, 1);
+}
+
 
 std::array<float, 3> Robot::getLegPosition(LegID id) const {
     std::array<float, 3> p;
