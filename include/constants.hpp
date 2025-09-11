@@ -22,9 +22,9 @@
 // Running gait parameters
 #define RUNNING_BODY_HEIGHT -120.0f
 #define RUNNING_LEG_DISTANCE_FROM_BODY 100.0f
-#define RUNNING_STEP_SIZE 3.0f
+#define RUNNING_STEP_SIZE 50.0f
 #define RUNNING_STEP_HEIGHT 30.0f
-#define RUNNING_POINTS_PER_MOVEMENT 7
+#define RUNNING_POINTS_PER_MOVEMENT 9
 
 // Turning gait parameter
 #define TURNING_ANGLE_A_STEP_COVERS 15.0f
