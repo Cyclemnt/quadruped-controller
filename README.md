@@ -34,7 +34,9 @@ A C++ controller for a 4-legged quadruped robot with 3 degrees of freedom per le
   * `resetLegs()` — Set all legs to a default neutral position.
   * `rest()` — Set robot to a predefined resting position.
   * `sit(bool)` — Transition between low and high standing height.
+  * `level()` — Tries to stay at level using IMU.
   * `walk()` — Perform a basic walking gait.
+  * `run()` — Perform a basic trot gait.
   * `turn()` — Perform a basic turning gait.
 
 ## Dependencies
@@ -93,11 +95,10 @@ int main() {
 
 ## Future Work
 
-* Implement trot gait cycle.
 * Add directional turning (turn left/right).
-* Include IMU.
 * Implement real-time control.
 
 ## Contributions
 
 **Author:** Clément Lamouller  
+**Trot gait research** Luan Parizot
