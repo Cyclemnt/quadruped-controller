@@ -8,19 +8,20 @@
 #include <stdexcept>
 #include <iostream>
 
-Robot::Robot(PCA9685* driver, BNO055* imu_)
+Robot::Robot(PCA9685* driver, BNO055* imu_, Stabilizer* stabilizer_)
     : legs{{
             Leg(LegID::FL, driver, {0, 1, 2}),
             Leg(LegID::FR, driver, {3, 4, 5}),
             Leg(LegID::RR, driver, {6, 7, 8}),
             Leg(LegID::RL, driver, {9,10,11})
         }},
-      imu(imu_) {}
+      imu(imu_), stabilizer(stabilizer_) {}
 
 Robot::~Robot() {
     for (int i = 0; i < legs.size(); i++)
         legs[i].~Leg();
     if (imu != nullptr) imu->~BNO055();
+    if (stabilizer != nullptr) stabilizer->~Stabilizer();
 }
 
 // Transform (x, y) to match the leg's coordinate system
@@ -240,87 +241,28 @@ float Robot::normalizeAngle(float angle) {
 }
 
 // Try to stay at level
-/*  OLD FUNCTION
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
+    if (!stabilizer) throw std::runtime_error("Stabilizer not initialized");
 
-    // Read orientation (roll, pitch, yaw)
     auto euler = imu->getEuler();
-    float roll = normalizeAngle(euler[2] - 180);   // °
-    float pitch = normalizeAngle(euler[1]);
+    auto positions = getLegsPositions();
 
-std::cout << " Roll: " << roll << "\tPitch: " << pitch << std::endl;
-
-    // Errors
-    float e_roll = -roll;   // trying to stay at 0
-    float e_pitch = -pitch;
-
-    // Correction gain (to modify)
-    float k = 2.0f; // mm/°
-
-    // z correction for every leg
-    std::array<float, 4> zOffset;
-    zOffset[static_cast<int>(LegID::FL)] = -k * e_pitch - k * e_roll; // FL
-    zOffset[static_cast<int>(LegID::FR)] = -k * e_pitch + k * e_roll; // FR
-    zOffset[static_cast<int>(LegID::RR)] =  k * e_pitch + k * e_roll; // RR
-    zOffset[static_cast<int>(LegID::RL)] =  k * e_pitch - k * e_roll; // RL
-
-    // Apply corrections
-    auto pStart = getLegsPositions();
-    std::vector<std::pair<LegID, std::array<float,3>>> targets;
-    for (int i = 0; i < 4; ++i) {
-        auto p = pStart[i];
-        p[2] += zOffset[i]; // Vertical adjustment
-        p[2] = std::clamp(p[2], -220.0f - 30.0f, 220.0f + 100.0f); // Need something else
-        targets.push_back({static_cast<LegID>(i), p});
-    }
-
-    // Move legs to new position
-    moveLegs({}, targets, false, 1, 10); // Try to lower points
-} // Need to find the floor to individually manage legs
-*/
-void Robot::level() {
-    if (!imu) throw std::runtime_error("IMU not initialized");
-
-    // Mesure orientation
-    auto euler = imu->getEuler();
-    float roll  = normalizeAngle(euler[2] - 180); // °
-    float pitch = normalizeAngle(euler[1]);
-
-    // Erreurs
-    float e_roll  = -roll;
-    float e_pitch = -pitch;
-
-    // Δt depuis le dernier appel
     auto now = std::chrono::steady_clock::now();
     float dt = std::chrono::duration<float>(now - lastUpdate).count();
-    if (dt <= 0) dt = 0.01f; // sécurité
+    if (dt <= 0) dt = 0.01f;
     lastUpdate = now;
 
-    // PID correction
-    float c_roll  = pidRoll.update(e_roll, dt);
-    float c_pitch = pidPitch.update(e_pitch, dt);
+    stabilizer->computeOffsets(euler[2], euler[1], dt, positions);
 
-    // z correction par patte
-    std::array<float, 4> zOffset;
-    zOffset[static_cast<int>(LegID::FL)] = -c_pitch - c_roll;
-    zOffset[static_cast<int>(LegID::FR)] = -c_pitch + c_roll;
-    zOffset[static_cast<int>(LegID::RR)] =  c_pitch + c_roll;
-    zOffset[static_cast<int>(LegID::RL)] =  c_pitch - c_roll;
-
-    // Appliquer
-    auto pStart = getLegsPositions();
+    // Conversion direct -> moveLegs
     std::vector<std::pair<LegID, std::array<float,3>>> targets;
     for (int i = 0; i < 4; ++i) {
-        auto p = pStart[i];
-        p[2] += zOffset[i];
-        p[2] = std::clamp(p[2], -250.0f, 250.0f); // limites sécurisées
-        targets.push_back({static_cast<LegID>(i), p});
+        targets.push_back({static_cast<LegID>(i), positions[i]});
     }
 
     moveLegs({}, targets, false, 0, 1);
 }
-
 
 std::array<float, 3> Robot::getLegPosition(LegID id) const {
     std::array<float, 3> p;

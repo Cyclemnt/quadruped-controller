@@ -1,6 +1,7 @@
 #include "../include/pca9685.hpp"
 #include "../include/bno055.hpp"
 #include "../include/robot.hpp"
+#include "../include/stabilizer.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -8,7 +9,8 @@
 int main() {
     PCA9685 driver;
     BNO055 imu;
-    Robot steve(&driver, &imu);
+    Stabilizer stabilizer;
+    Robot steve(&driver, &imu, &stabilizer);
     
     steve.rest();
 

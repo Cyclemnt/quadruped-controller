@@ -8,25 +8,11 @@ include_directories(
     include/
 )
 
-set(SOURCES
-    src/main.cpp
-    src/pca9685.cpp
-    src/joint.cpp
-    src/leg.cpp
-    src/robot.cpp
-    src/kinematics.cpp
-    src/bno055.cpp
-)
+# Include directory
+include_directories(include)
 
-set(HEADERS
-    include/pca9685.hpp
-    include/joint.hpp
-    include/leg.hpp
-    include/robot.hpp
-    include/kinematics.hpp
-    include/bno055.hpp
-    include/constants.hpp
-)
+# Collect all source files
+file(GLOB_RECURSE SOURCES src/*.cpp)
 
 set(CMAKE_BUILD_TYPE Debug) 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")  
