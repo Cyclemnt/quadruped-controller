@@ -25,23 +25,15 @@ void Stabilizer::computeOffsets(
     float corrPitch = pidPitch.update(-pitch_deg, dt);
 
     // For each leg compute geometric dz
-    for (int i = 0; i < 4; ++i) {
-        float x = legPositions[i][0]; // in mm
-        float y = legPositions[i][1]; // in mm
-
-        // Option A: exact geometry
-        float dz = - x * std::tan(corrPitch) + y * std::tan(corrRoll);
-
-        // Option B: small-angle linearization (faster, ok for small angles)
-        // float dz = - x * corrPitch + y * corrRoll;
-
-        // Optionally apply an overall scaling / safety limit
-        const float scale = 1.0f; // tune this if necessary
-        dz *= scale;
-
-        // apply and clamp
+    for (int i = 0; i < 4; i++) {
+        // Fetch positions from center of body to end of legs
+        float x = legPositions[i][0] + 70;
+        float y = legPositions[i][1] + 70;
+        // Compute offset
+        float dz = ((i < 2) ? 1 : -1) * x * std::tan(pitch_rad) + ((i == 0 || i == 3) ? 1 : -1) * y * std::tan(roll_rad);
+        // Apply offset
         legPositions[i][2] += dz;
-        legPositions[i][2] = std::clamp(legPositions[i][2], -250.0f, 250.0f);
+        legPositions[i][2] = std::clamp(legPositions[i][2], -220.0f, -80.0f);
     }
 }
 
