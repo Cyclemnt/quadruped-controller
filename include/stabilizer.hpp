@@ -6,7 +6,8 @@
 
 class Stabilizer {
 private:
-    std::array<PID, 4> legsPID;
+    PID pidRoll;
+    PID pidPitch;
     float normalizeAngle(float angle);
 
 public:

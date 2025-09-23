@@ -3,9 +3,9 @@
 #include <algorithm>
 
 Stabilizer::Stabilizer(float kp, float ki, float kd)
-    : legsPID({(kp, ki, kd), (kp, ki, kd), (kp, ki, kd), (kp, ki, kd)}) {}
+    : pidRoll(kp, ki, kd), pidPitch(kp, ki, kd) {}
 
-Stabilizer::~Stabilizer() { legsPID[0].~PID(); legsPID[1].~PID(); legsPID[2].~PID(); legsPID[3].~PID(); }
+Stabilizer::~Stabilizer() { pidRoll.~PID(); pidPitch.~PID(); }
 
 // Returns z offsets for {FL, FR, RR, RL}
 void Stabilizer::computeOffsets(
@@ -21,9 +21,24 @@ void Stabilizer::computeOffsets(
 
     // PID outputs: you can choose PID to output a scale factor (unitless) or directly angular correction.
     // Here we use PID to compute a scalar "intensity" for roll and pitch (in radians) :
-    //float corrRoll = pidRoll.update(-roll_deg, dt);
-    //float corrPitch = pidPitch.update(-pitch_deg, dt);
+    float c_roll = pidRoll.update(-roll_deg, dt);
+    float c_pitch = pidPitch.update(-pitch_deg, dt);
 
+
+    // z correction for each leg
+    std::array<float, 4> zOffset;
+    zOffset[0] = -c_pitch - c_roll;
+    zOffset[1] = -c_pitch + c_roll;
+    zOffset[2] =  c_pitch + c_roll;
+    zOffset[3] =  c_pitch - c_roll;
+
+    // For each leg
+    for (int i = 0; i < 4; i++) {
+        legPositions[i][2] += zOffset[i];
+        legPositions[i][2] = std::clamp(legPositions[i][2], -220.0f, -80.0f);
+    }
+
+/*  ABSOLUTE CORRECTION (NO PID, EXACT COMPUTATION)
     // For each leg compute geometric dz
     for (int i = 0; i < 4; i++) {
         // Fetch positions from center of body to end of legs
@@ -31,11 +46,11 @@ void Stabilizer::computeOffsets(
         float y = legPositions[i][1] + 70;
         // Compute offset
         float dz = ((i < 2) ? 1 : -1) * x * std::tan(pitch_rad) + ((i == 0 || i == 3) ? 1 : -1) * y * std::tan(roll_rad);
-        float corr = legsPID[0].update(dz, dt);
         // Apply offset
-        legPositions[i][2] += corr;
+        legPositions[i][2] += dz;
         legPositions[i][2] = std::clamp(legPositions[i][2], -220.0f, -80.0f);
     }
+*/
 }
 
 float Stabilizer::normalizeAngle(float angle) {
