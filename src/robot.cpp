@@ -243,6 +243,48 @@ float Robot::normalizeAngle(float angle) {
 // Try to stay at level
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
+
+    // Mesure orientation
+    auto euler = imu->getEuler();
+    float roll  = normalizeAngle(euler[2] - 180); // °
+    float pitch = normalizeAngle(euler[1]);
+
+    // Erreurs
+    float e_roll  = -roll;
+    float e_pitch = -pitch;
+
+    // Δt depuis le dernier appel
+    auto now = std::chrono::steady_clock::now();
+    float dt = std::chrono::duration<float>(now - lastUpdate).count();
+    if (dt <= 0) dt = 0.01f; // sécurité
+    lastUpdate = now;
+
+    // PID correction
+    float c_roll  = pidRoll.update(e_roll, dt);
+    float c_pitch = pidPitch.update(e_pitch, dt);
+
+    // z correction par patte
+    std::array<float, 4> zOffset;
+    zOffset[static_cast<int>(LegID::FL)] = -c_pitch - c_roll;
+    zOffset[static_cast<int>(LegID::FR)] = -c_pitch + c_roll;
+    zOffset[static_cast<int>(LegID::RR)] =  c_pitch + c_roll;
+    zOffset[static_cast<int>(LegID::RL)] =  c_pitch - c_roll;
+
+    // Appliquer
+    auto pStart = getLegsPositions();
+    std::vector<std::pair<LegID, std::array<float,3>>> targets;
+    for (int i = 0; i < 4; ++i) {
+        auto p = pStart[i];
+        p[2] += zOffset[i];
+        p[2] = std::clamp(p[2], -250.0f, 250.0f); // limites sécurisées
+        targets.push_back({static_cast<LegID>(i), p});
+    }
+
+    moveLegs({}, targets, false, 0, 1);
+}
+/*
+void Robot::level() {
+    if (!imu) throw std::runtime_error("IMU not initialized");
     if (!stabilizer) throw std::runtime_error("Stabilizer not initialized");
 
     auto euler = imu->getEuler();
@@ -263,6 +305,7 @@ void Robot::level() {
 
     moveLegs({}, targets, false, 0, 1);
 }
+*/
 
 std::array<float, 3> Robot::getLegPosition(LegID id) const {
     std::array<float, 3> p;
