@@ -11,7 +11,7 @@ private:
     float normalizeAngle(float angle);
 
 public:
-    Stabilizer(float kp = 2.0f, float ki = 0.0f, float kd = 0.5f);
+    Stabilizer(float kp = 0.6f, float ki = 0.0f, float kd = 0.05f);
     ~Stabilizer();
 
     // Returns z offsets for {FL, FR, RR, RL}

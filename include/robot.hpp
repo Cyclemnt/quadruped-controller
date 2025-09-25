@@ -17,8 +17,8 @@ private:
     BNO055* imu;
 
     Stabilizer* stabilizer;
-    PID pidRoll{2.0f, 0.0f, 0.5f};
-    PID pidPitch{2.0f, 0.0f, 0.5f};
+    // PID pidRoll{2.0f, 0.0f, 0.5f};
+    // PID pidPitch{2.0f, 0.0f, 0.5f};
 
     std::chrono::steady_clock::time_point lastUpdate;
 
