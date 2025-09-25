@@ -7,6 +7,7 @@
 #include <thread>
 #include <stdexcept>
 #include <iostream>
+#include "../include/control_flags.hpp"
 
 Robot::Robot(PCA9685* driver, BNO055* imu_, Stabilizer* stabilizer_)
     : legs{{
@@ -167,7 +168,9 @@ void Robot::walk() {
 
     // Gait algorithm
     for (int i = 0; i < 2; ++i) {
+        if (stopRequested.load()) return;
         moveLegs({{LegID::FR, {stride - dy, -dx, h}}}, {}); // STEP 1
+        if (stopRequested.load()) return;
         targets = {
             {LegID::FL, {    -dy,  dx, h}}, // FL   x = dx - shift
             {LegID::FR, {     dx, -dx, h}}, // FR   x = stride - dy - shift
