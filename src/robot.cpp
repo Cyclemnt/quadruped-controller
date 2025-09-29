@@ -222,16 +222,16 @@ void Robot::run() {
 }
 
 // Turn left
-void Robot::turn() {
-    constexpr float angle = TURNING_ANGLE_A_STEP_COVERS;
+void Robot::turn(bool left) {
+    const float angle = left ? TURNING_ANGLE_A_STEP_COVERS : -TURNING_ANGLE_A_STEP_COVERS;
 
     rest();
     std::vector<LegID> a = {LegID::FL, LegID::RR};
     std::vector<LegID> b = {LegID::FR, LegID::RL};
-    for (int i = 0; i < 5; ++i) {
+    //for (int i = 0; i < 5; ++i) {
         rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
         rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
-    }
+    //}
 }
 
 float Robot::normalizeAngle(float angle) {
