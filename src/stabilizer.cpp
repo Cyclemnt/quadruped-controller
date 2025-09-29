@@ -3,13 +3,14 @@
 #include <algorithm>
 
 Stabilizer::Stabilizer(float kp, float ki, float kd)
-    : pidRoll(kp, ki, kd), pidPitch(kp, ki, kd) {}
+    : pidRoll(kp, ki, kd), pidPitch(kp, ki, kd), previousRoll(0.0f) {}
 
 Stabilizer::~Stabilizer() { pidRoll.~PID(); pidPitch.~PID(); }
 
-float Stabilizer::filterAngle(float current) {
+float Stabilizer::filterRollAngle(float current) {
     if (std::fabs(current - previousRoll) > 90.0f)
         return previousRoll; // ignore outlier
+    previousRoll = current; // else consider current as normal value
     return current;
 }
 
@@ -18,7 +19,7 @@ void Stabilizer::computeOffsets(
     float roll_deg, float pitch_deg, float dt,
     std::array<std::array<float, 3>, 4>& legPositions
 ) {
-    float roll = normalizeAngle(roll_deg - 180);
+    float roll = filterRollAngle(normalizeAngle(roll_deg - 180));
     float pitch = normalizeAngle(pitch_deg);
 
     // Convert to radians
