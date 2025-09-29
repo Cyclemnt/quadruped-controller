@@ -8,7 +8,7 @@
 // Resting position parameters
 #define RESTING_X 100
 #define RESTING_Y 100
-#define RESTING_H -220
+#define RESTING_H -120
 
 // Sitting positions parameters
 #define SITTING_LOWER_HEIGHT -120.0f
