@@ -96,7 +96,7 @@ void Robot::rotateLegs(std::vector<LegID>& legsLifted, std::vector<LegID>& legsF
 
         float x = r * std::cos(theta);
         float y = r * std::sin(theta);
-        float z = STANDARD_HEIGHT;
+        float z = TURNING_BODY_HEIGHT;
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -228,10 +228,8 @@ void Robot::turn(bool left) {
     rest();
     std::vector<LegID> a = {LegID::FL, LegID::RR};
     std::vector<LegID> b = {LegID::FR, LegID::RL};
-    //for (int i = 0; i < 5; ++i) {
-        rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
-        rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
-    //}
+    rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
+    rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
 }
 
 float Robot::normalizeAngle(float angle) {

@@ -15,8 +15,12 @@ int main() {
     steve.rest();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(8000));
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 2; i++) {
         steve.turn(true);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    for (int i = 0; i < 2; i++) {
+        steve.turn(false);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30000));

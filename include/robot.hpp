@@ -37,7 +37,7 @@ public:
         std::vector<LegID>& legsLifted,
         std::vector<LegID>& legsFlat,
         float deltaAngleDeg,
-        float liftHeight = 20.0f, int steps = 40
+        float liftHeight = 30.0f, int steps = 8
     );
 
     void resetLegs();
