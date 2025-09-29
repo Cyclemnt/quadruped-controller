@@ -45,7 +45,7 @@ public:
 
     void sit(bool down);
     void walk();
-    void run();
+    void run(bool frontwards);
     void turn(bool left);
 
     float normalizeAngle(float angle);

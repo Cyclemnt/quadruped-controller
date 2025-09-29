@@ -16,11 +16,11 @@ int main() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(8000));
     for (int i = 0; i < 2; i++) {
-        steve.turn(true);
+        steve.run(true);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     for (int i = 0; i < 2; i++) {
-        steve.turn(false);
+        steve.run(false);
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30000));
