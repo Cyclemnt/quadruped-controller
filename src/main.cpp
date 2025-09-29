@@ -18,10 +18,12 @@ int main() {
     for (int i = 0; i < 2; i++) {
         steve.run(true);
     }
+    steve.stopRunning();
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     for (int i = 0; i < 2; i++) {
         steve.run(false);
     }
+    steve.stopRunning();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30000));
 

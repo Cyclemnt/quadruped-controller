@@ -195,15 +195,15 @@ void Robot::run(bool frontwards) {
     constexpr float stepHeight = RUNNING_STEP_HEIGHT;
     constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
 
-    // Initial position
-    std::vector<std::pair<LegID, std::array<float, 3>>> targetFlats = {
-        {LegID::FL, {dx, dx, h}}, // FL
-        {LegID::FR, {dx, dx, h}}, // FR
-        {LegID::RR, {dx, dx, h}}, // RR
-        {LegID::RL, {dx, dx, h}}  // RL
-    };
-    moveLegs({}, targetFlats, 0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    // // Initial position
+    // std::vector<std::pair<LegID, std::array<float, 3>>> targetFlats = {
+    //     {LegID::FL, {dx, dx, h}}, // FL
+    //     {LegID::FR, {dx, dx, h}}, // FR
+    //     {LegID::RR, {dx, dx, h}}, // RR
+    //     {LegID::RL, {dx, dx, h}}  // RL
+    // };
+    // moveLegs({}, targetFlats, 0);
+    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // Gait algorithm
 //    for (int i = 0; i < 20; ++i) {
@@ -216,7 +216,14 @@ void Robot::run(bool frontwards) {
 //        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
 //                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
 //    }
-    
+}
+
+void Robot::stopRunning() {
+    constexpr float h = RUNNING_BODY_HEIGHT;
+    constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
+    constexpr float stepHeight = RUNNING_STEP_HEIGHT;
+    constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
+
     moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
              {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
 }
