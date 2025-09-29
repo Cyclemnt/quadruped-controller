@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 #include <iostream>
 
 #define BNO055_OPR_MODE      0x3D
@@ -38,13 +39,35 @@ void BNO055::write8(uint8_t reg, uint8_t value) const {
 
 uint8_t BNO055::read8(uint8_t reg) const {
     uint8_t value;
-    readLen(reg, &value, 1);
+    if (!readLen(reg, &value, 1))
+        throw std::runtime_error("I2C: Failed to read8");
     return value;
 }
 
 bool BNO055::readLen(uint8_t reg, uint8_t* buffer, uint8_t len) const {
-    if (write(fd, &reg, 1) != 1) return false;
-    return (read(fd, buffer, len) == len);
+    struct i2c_rdwr_ioctl_data packets;
+    struct i2c_msg messages[2];
+
+    // Premier message : on écrit l'adresse du registre
+    messages[0].addr  = address;
+    messages[0].flags = 0; // write
+    messages[0].len   = 1;
+    messages[0].buf   = &reg;
+
+    // Deuxième message : on lit 'len' octets
+    messages[1].addr  = address;
+    messages[1].flags = I2C_M_RD;
+    messages[1].len   = len;
+    messages[1].buf   = buffer;
+
+    packets.msgs  = messages;
+    packets.nmsgs = 2;
+
+    if (ioctl(fd, I2C_RDWR, &packets) < 0) {
+        perror("I2C_RDWR");
+        return false;
+    }
+    return true;
 }
 
 void BNO055::initialize() const {

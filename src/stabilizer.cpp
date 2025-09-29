@@ -7,6 +7,12 @@ Stabilizer::Stabilizer(float kp, float ki, float kd)
 
 Stabilizer::~Stabilizer() { pidRoll.~PID(); pidPitch.~PID(); }
 
+float Stabilizer::filterAngle(float current) {
+    if (std::fabs(current - previousRoll) > 90.0f)
+        return previousRoll; // ignore outlier
+    return current;
+}
+
 // Returns z offsets for {FL, FR, RR, RL}
 void Stabilizer::computeOffsets(
     float roll_deg, float pitch_deg, float dt,
@@ -21,8 +27,8 @@ void Stabilizer::computeOffsets(
 
     // PID outputs: you can choose PID to output a scale factor (unitless) or directly angular correction.
     // Here we use PID to compute a scalar "intensity" for roll and pitch (in radians) :
-    float c_roll = pidRoll.update(-roll_deg, dt);
-    float c_pitch = pidPitch.update(-pitch_deg, dt);
+    float c_roll = pidRoll.update(-roll, dt);
+    float c_pitch = pidPitch.update(-pitch, dt);
 
 
     // z correction for each leg
