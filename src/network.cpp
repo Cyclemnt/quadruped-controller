@@ -84,7 +84,7 @@ void network_thread_func(int port) {
             // request stop (if routine checks stopRequested)
             stopRequested.store(true);
             write(client_fd, "OK\n", 3);
-        } else if (cmd == "start_walf_backward") {
+        } else if (cmd == "start_walk_backward") {
             stopRequested.store(false);
             flag_walk_backwards.store(true);
             write(client_fd, "OK\n", 3);
@@ -104,7 +104,7 @@ void network_thread_func(int port) {
             stopRequested.store(false);
             flag_turn_left.store(true);
             write(client_fd, "OK\n", 3);
-        } else if (cmd == "start_walk_left") {
+        } else if (cmd == "stop_walk_left") {
             flag_turn_left.store(false);
             stopRequested.store(true);
             write(client_fd, "OK\n", 3);
