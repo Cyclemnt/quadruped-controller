@@ -15,7 +15,7 @@
 std::atomic<bool> flag_walk_forward(false);
 std::atomic<bool> flag_walk_backwards(false);
 std::atomic<bool> flag_walk_right(false);
-std::atomic<bool> flag_turn_left(false);
+std::atomic<bool> flag_walk_left(false);
 std::atomic<bool> stopRequested(false);
 
 int main() {
@@ -39,7 +39,7 @@ int main() {
             steve.run(false);
         } else if (flag_walk_right.load()) {
             steve.turn(false);
-        } else if (flag_turn_left.load()) {
+        } else if (flag_walk_left.load()) {
             steve.turn(true);
         } else {
             steve.level(); // stabilisation si aucune commande

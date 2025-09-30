@@ -102,10 +102,10 @@ void network_thread_func(int port) {
             write(client_fd, "OK\n", 3);
         } else if (cmd == "start_walk_left") {
             stopRequested.store(false);
-            flag_turn_left.store(true);
+            flag_walk_left.store(true);
             write(client_fd, "OK\n", 3);
         } else if (cmd == "stop_walk_left") {
-            flag_turn_left.store(false);
+            flag_walk_left.store(false);
             stopRequested.store(true);
             write(client_fd, "OK\n", 3);
         } else {
