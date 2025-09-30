@@ -6,6 +6,7 @@
 #include "bno055.hpp"
 #include "constants.hpp"
 #include "stabilizer.hpp"
+#include "pid.hpp"
 #include <array>
 #include <vector>
 #include <chrono>
@@ -16,6 +17,8 @@ private:
     BNO055* imu;
 
     Stabilizer* stabilizer;
+    // PID pidRoll{2.0f, 0.0f, 0.5f};
+    // PID pidPitch{2.0f, 0.0f, 0.5f};
 
     std::chrono::steady_clock::time_point lastUpdate;
 
@@ -34,7 +37,7 @@ public:
         std::vector<LegID>& legsLifted,
         std::vector<LegID>& legsFlat,
         float deltaAngleDeg,
-        float liftHeight = 20.0f, int steps = 40
+        float liftHeight = 30.0f, int steps = 8
     );
 
     void resetLegs();
@@ -42,8 +45,9 @@ public:
 
     void sit(bool down);
     void walk();
-    void run();
-    void turn();
+    void run(bool frontwards);
+    void stopRunning();
+    void turn(bool left);
 
     float normalizeAngle(float angle);
     void level();

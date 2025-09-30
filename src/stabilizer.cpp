@@ -3,16 +3,23 @@
 #include <algorithm>
 
 Stabilizer::Stabilizer(float kp, float ki, float kd)
-    : pidRoll(kp, ki, kd), pidPitch(kp, ki, kd) {}
+    : pidRoll(kp, ki, kd), pidPitch(kp, ki, kd), previousRoll(0.0f) {}
 
 Stabilizer::~Stabilizer() { pidRoll.~PID(); pidPitch.~PID(); }
+
+float Stabilizer::filterRollAngle(float current) {
+    if (std::fabs(current - previousRoll) > 90.0f)
+        return previousRoll; // ignore outlier
+    previousRoll = current; // else consider current as normal value
+    return current;
+}
 
 // Returns z offsets for {FL, FR, RR, RL}
 void Stabilizer::computeOffsets(
     float roll_deg, float pitch_deg, float dt,
     std::array<std::array<float, 3>, 4>& legPositions
 ) {
-    float roll = normalizeAngle(roll_deg - 180);
+    float roll = filterRollAngle(normalizeAngle(roll_deg - 180));
     float pitch = normalizeAngle(pitch_deg);
 
     // Convert to radians
@@ -21,9 +28,24 @@ void Stabilizer::computeOffsets(
 
     // PID outputs: you can choose PID to output a scale factor (unitless) or directly angular correction.
     // Here we use PID to compute a scalar "intensity" for roll and pitch (in radians) :
-    float corrRoll = pidRoll.update(-roll_deg, dt);
-    float corrPitch = pidPitch.update(-pitch_deg, dt);
+    float c_roll = pidRoll.update(-roll, dt);
+    float c_pitch = pidPitch.update(-pitch, dt);
 
+
+    // z correction for each leg
+    std::array<float, 4> zOffset;
+    zOffset[0] = -c_pitch - c_roll;
+    zOffset[1] = -c_pitch + c_roll;
+    zOffset[2] =  c_pitch + c_roll;
+    zOffset[3] =  c_pitch - c_roll;
+
+    // For each leg
+    for (int i = 0; i < 4; i++) {
+        legPositions[i][2] += zOffset[i];
+        legPositions[i][2] = std::clamp(legPositions[i][2], -220.0f, -80.0f);
+    }
+
+/*  ABSOLUTE CORRECTION (NO PID, EXACT COMPUTATION)
     // For each leg compute geometric dz
     for (int i = 0; i < 4; i++) {
         // Fetch positions from center of body to end of legs
@@ -35,6 +57,7 @@ void Stabilizer::computeOffsets(
         legPositions[i][2] += dz;
         legPositions[i][2] = std::clamp(legPositions[i][2], -220.0f, -80.0f);
     }
+*/
 }
 
 float Stabilizer::normalizeAngle(float angle) {

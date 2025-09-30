@@ -97,7 +97,7 @@ void Robot::rotateLegs(std::vector<LegID>& legsLifted, std::vector<LegID>& legsF
 
         float x = r * std::cos(theta);
         float y = r * std::sin(theta);
-        float z = STANDARD_HEIGHT;
+        float z = TURNING_BODY_HEIGHT;
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -191,25 +191,25 @@ void Robot::walk() {
     }
 }
 
-void Robot::run() {
+void Robot::run(bool frontwards) {
     constexpr float h = RUNNING_BODY_HEIGHT;
     constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
-    constexpr float step = RUNNING_STEP_SIZE;  // Distance a steps adds
+    const float step = frontwards ? RUNNING_STEP_SIZE : -RUNNING_STEP_SIZE;  // Distance a steps adds
     constexpr float stepHeight = RUNNING_STEP_HEIGHT;
     constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
 
-    // Initial position
-    std::vector<std::pair<LegID, std::array<float, 3>>> targetFlats = {
-        {LegID::FL, {dx, dx, h}}, // FL
-        {LegID::FR, {dx, dx, h}}, // FR
-        {LegID::RR, {dx, dx, h}}, // RR
-        {LegID::RL, {dx, dx, h}}  // RL
-    };
-    moveLegs({}, targetFlats, 0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    // // Initial position
+    // std::vector<std::pair<LegID, std::array<float, 3>>> targetFlats = {
+    //     {LegID::FL, {dx, dx, h}}, // FL
+    //     {LegID::FR, {dx, dx, h}}, // FR
+    //     {LegID::RR, {dx, dx, h}}, // RR
+    //     {LegID::RL, {dx, dx, h}}  // RL
+    // };
+    // moveLegs({}, targetFlats, 0);
+    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // Gait algorithm
-    for (int i = 0; i < 20; ++i) {
+//    for (int i = 0; i < 20; ++i) {
         moveLegs({{LegID::FL, {dx + step, dx, h}}, {LegID::RR, {dx - step, dx, h}}},
                  {{LegID::FR, {dx, dx - step, h}}, {LegID::RL, {dx, dx + step, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
@@ -218,23 +218,28 @@ void Robot::run() {
                  {{LegID::FL, {dx - step, dx, h}}, {LegID::RR, {dx + step, dx, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
 //                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
-    }
-    
+//    }
+}
+
+void Robot::stopRunning() {
+    constexpr float h = RUNNING_BODY_HEIGHT;
+    constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
+    constexpr float stepHeight = RUNNING_STEP_HEIGHT;
+    constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
+
     moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
              {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
 }
 
 // Turn left
-void Robot::turn() {
-    constexpr float angle = TURNING_ANGLE_A_STEP_COVERS;
+void Robot::turn(bool left) {
+    const float angle = left ? TURNING_ANGLE_A_STEP_COVERS : -TURNING_ANGLE_A_STEP_COVERS;
 
     rest();
     std::vector<LegID> a = {LegID::FL, LegID::RR};
     std::vector<LegID> b = {LegID::FR, LegID::RL};
-    for (int i = 0; i < 5; ++i) {
-        rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
-        rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
-    }
+    rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
+    rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
 }
 
 float Robot::normalizeAngle(float angle) {
@@ -244,6 +249,47 @@ float Robot::normalizeAngle(float angle) {
 }
 
 // Try to stay at level
+// void Robot::level() {
+//     if (!imu) throw std::runtime_error("IMU not initialized");
+
+//     // Mesure orientation
+//     auto euler = imu->getEuler();
+//     float roll  = normalizeAngle(euler[2] - 180); // °
+//     float pitch = normalizeAngle(euler[1]);
+
+//     // Erreurs
+//     float e_roll  = -roll;
+//     float e_pitch = -pitch;
+
+//     // Δt depuis le dernier appel
+//     auto now = std::chrono::steady_clock::now();
+//     float dt = std::chrono::duration<float>(now - lastUpdate).count();
+//     if (dt <= 0) dt = 0.01f; // sécurité
+//     lastUpdate = now;
+
+//     // PID correction
+//     float c_roll  = pidRoll.update(e_roll, dt);
+//     float c_pitch = pidPitch.update(e_pitch, dt);
+
+//     // z correction par patte
+//     std::array<float, 4> zOffset;
+//     zOffset[static_cast<int>(LegID::FL)] = -c_pitch - c_roll;
+//     zOffset[static_cast<int>(LegID::FR)] = -c_pitch + c_roll;
+//     zOffset[static_cast<int>(LegID::RR)] =  c_pitch + c_roll;
+//     zOffset[static_cast<int>(LegID::RL)] =  c_pitch - c_roll;
+
+//     // Appliquer
+//     auto pStart = getLegsPositions();
+//     std::vector<std::pair<LegID, std::array<float,3>>> targets;
+//     for (int i = 0; i < 4; ++i) {
+//         auto p = pStart[i];
+//         p[2] += zOffset[i];
+//         p[2] = std::clamp(p[2], -220.0f, 80.0f); // limites sécurisées
+//         targets.push_back({static_cast<LegID>(i), p});
+//     }
+
+//     moveLegs({}, targets, false, 0, 1);
+// }
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
     if (!stabilizer) throw std::runtime_error("Stabilizer not initialized");

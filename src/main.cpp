@@ -19,73 +19,51 @@ std::atomic<bool> flag_turn_left(false);
 std::atomic<bool> stopRequested(false);
 
 int main() {
-    try {
-        PCA9685 driver;
-        BNO055 imu;
-        Stabilizer stabilizer;
-        Robot steve(&driver, &imu, &stabilizer);
+    PCA9685 driver;
+    BNO055 imu;
+    Stabilizer stabilizer;
+    Robot steve(&driver, &imu, &stabilizer);
+    
+    steve.rest();
+    std::this_thread::sleep_for(std::chrono::milliseconds(8000));
 
-        std::thread netThread(network_thread_func, 12345);
+    steve.sit(true);
 
-        // Pose initiale (optionnelle)
-        steve.rest();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::cout << "walking..." << std::endl;
+    steve.sit(false);
+    steve.walk();
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    steve.rest();
 
-        std::cout << "[main] Entering control loop (directional flags only)\n";
+    std::cout << "running frontwards (4 it)..." << std::endl;
+    steve.sit(true);
+    for (int i = 0; i < 4; i++)
+        steve.run(true);
+    steve.stopRunning();
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-        while (true) {
-            // Marche avant
-            if (flag_walk_forward.load()) {
-                try {
-                    steve.run();
-                } catch (const std::exception& e) {
-                    std::cerr << "walkForward() failed: " << e.what() << std::endl;
-                }
-            }
+    std::cout << "running backwards (4 it)..." << std::endl;
+    for (int i = 0; i < 2; i++)
+        steve.run(false);
+    steve.stopRunning();
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-            // // Marche arrière
-            // if (flag_walk_backwards.load()) {
-            //     try {
-            //         steve.walkBackwards();
-            //     } catch (const std::exception& e) {
-            //         std::cerr << "walkBackwards() failed: " << e.what() << std::endl;
-            //     }
-            // }
+    std::cout << "turning left (4 it)..." << std::endl;
+    for (int i = 0; i < 4; i++)
+        steve.turn(true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-            // // Marche à droite
-            // if (flag_walk_right.load()) {
-            //     try {
-            //         steve.walkRight();
-            //     } catch (const std::exception& e) {
-            //         std::cerr << "walkRight() failed: " << e.what() << std::endl;
-            //     }
-            // }
+    std::cout << "turning right (4 it)..." << std::endl;
+    for (int i = 0; i < 4; i++)
+        steve.turn(false);
 
-            // Marche à gauche
-            if (flag_turn_left.load()) {
-                try {
-                    steve.turn();
-                } catch (const std::exception& e) {
-                    std::cerr << "walkLeft() failed: " << e.what() << std::endl;
-                }
-            }
+    std::cout << "keeping level..." << std::endl;
+    for (long i = 0; i < 999999999999; i++)
+        steve.level();
 
-            // Stabilisation continue (optionnel)
-            try {
-                steve.level();
-            } catch (...) {
-                // Ignore ou log
-            }
+    std::this_thread::sleep_for(std::chrono::milliseconds(30000));
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-
-        // Note : on n’atteint jamais ce code, boucle infinie
-        if (netThread.joinable()) netThread.join();
-    } catch (const std::exception& ex) {
-        std::cerr << "Fatal exception: " << ex.what() << std::endl;
-        return 1;
-    }
+    driver.disableAllPWM();
 
     return 0;
 }

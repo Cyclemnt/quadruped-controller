@@ -8,7 +8,7 @@
 // Resting position parameters
 #define RESTING_X 100
 #define RESTING_Y 100
-#define RESTING_H -220
+#define RESTING_H -120
 
 // Sitting positions parameters
 #define SITTING_LOWER_HEIGHT -120.0f
@@ -27,6 +27,7 @@
 #define RUNNING_POINTS_PER_MOVEMENT 9
 
 // Turning gait parameter
+#define TURNING_BODY_HEIGHT -120.0f
 #define TURNING_ANGLE_A_STEP_COVERS 15.0f
 
 // Level keeping controller parameters
