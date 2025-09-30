@@ -23,47 +23,38 @@ int main() {
     BNO055 imu;
     Stabilizer stabilizer;
     Robot steve(&driver, &imu, &stabilizer);
-    
+
     steve.rest();
-    std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    steve.sit(true);
+    // Lancer le serveur réseau dans un thread
+    std::thread netThread(network_thread_func, 12345);
 
-    std::cout << "walking..." << std::endl;
-    steve.sit(false);
-    steve.walk();
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    steve.rest();
+    std::cout << "Robot prêt, attente des commandes réseau..." << std::endl;
 
-    std::cout << "running frontwards (4 it)..." << std::endl;
-    steve.sit(true);
-    for (int i = 0; i < 4; i++)
-        steve.run(true);
-    steve.stopRunning();
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    while (true) {
+        if (flag_walk_forward.load()) {
+            steve.walk();
+        } else if (flag_walk_backwards.load()) {
+            steve.run(false);
+        } else if (flag_walk_right.load()) {
+            steve.turn(false);
+        } else if (flag_turn_left.load()) {
+            steve.turn(true);
+        } else {
+            steve.level(); // stabilisation si aucune commande
+        }
 
-    std::cout << "running backwards (4 it)..." << std::endl;
-    for (int i = 0; i < 2; i++)
-        steve.run(false);
-    steve.stopRunning();
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        if (stopRequested.load()) {
+            steve.stopRunning();
+            stopRequested.store(false);
+        }
 
-    std::cout << "turning left (4 it)..." << std::endl;
-    for (int i = 0; i < 4; i++)
-        steve.turn(true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-    std::cout << "turning right (4 it)..." << std::endl;
-    for (int i = 0; i < 4; i++)
-        steve.turn(false);
-
-    std::cout << "keeping level..." << std::endl;
-    for (long i = 0; i < 999999999999; i++)
-        steve.level();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(30000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 
     driver.disableAllPWM();
+    netThread.join();
 
     return 0;
 }
