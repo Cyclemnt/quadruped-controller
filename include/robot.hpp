@@ -17,8 +17,6 @@ private:
     BNO055* imu;
 
     Stabilizer* stabilizer;
-    // PID pidRoll{2.0f, 0.0f, 0.5f};
-    // PID pidPitch{2.0f, 0.0f, 0.5f};
 
     std::chrono::steady_clock::time_point lastUpdate;
 
@@ -49,7 +47,6 @@ public:
     void stopRunning();
     void turn(bool left);
 
-    float normalizeAngle(float angle);
     void level();
 
     std::array<float, 3> getLegPosition(LegID id) const;

@@ -205,8 +205,6 @@ void Robot::run(bool frontwards) {
     // moveLegs({}, targetFlats, 0);
     // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-    // Gait algorithm
-//    for (int i = 0; i < 20; ++i) {
         moveLegs({{LegID::FL, {dx + step, dx, h}}, {LegID::RR, {dx - step, dx, h}}},
                  {{LegID::FR, {dx, dx - step, h}}, {LegID::RL, {dx, dx + step, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
@@ -215,7 +213,6 @@ void Robot::run(bool frontwards) {
                  {{LegID::FL, {dx - step, dx, h}}, {LegID::RR, {dx + step, dx, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
 //                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
-//    }
 }
 
 void Robot::stopRunning() {
@@ -232,61 +229,13 @@ void Robot::stopRunning() {
 void Robot::turn(bool left) {
     const float angle = left ? TURNING_ANGLE_A_STEP_COVERS : -TURNING_ANGLE_A_STEP_COVERS;
 
-    rest();
+    //rest();
     std::vector<LegID> a = {LegID::FL, LegID::RR};
     std::vector<LegID> b = {LegID::FR, LegID::RL};
     rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
     rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
 }
 
-float Robot::normalizeAngle(float angle) {
-    while (angle > 180.0f) angle -= 360.0f;
-    while (angle <= -180.0f) angle += 360.0f;
-    return angle;
-}
-
-// Try to stay at level
-// void Robot::level() {
-//     if (!imu) throw std::runtime_error("IMU not initialized");
-
-//     // Mesure orientation
-//     auto euler = imu->getEuler();
-//     float roll  = normalizeAngle(euler[2] - 180); // °
-//     float pitch = normalizeAngle(euler[1]);
-
-//     // Erreurs
-//     float e_roll  = -roll;
-//     float e_pitch = -pitch;
-
-//     // Δt depuis le dernier appel
-//     auto now = std::chrono::steady_clock::now();
-//     float dt = std::chrono::duration<float>(now - lastUpdate).count();
-//     if (dt <= 0) dt = 0.01f; // sécurité
-//     lastUpdate = now;
-
-//     // PID correction
-//     float c_roll  = pidRoll.update(e_roll, dt);
-//     float c_pitch = pidPitch.update(e_pitch, dt);
-
-//     // z correction par patte
-//     std::array<float, 4> zOffset;
-//     zOffset[static_cast<int>(LegID::FL)] = -c_pitch - c_roll;
-//     zOffset[static_cast<int>(LegID::FR)] = -c_pitch + c_roll;
-//     zOffset[static_cast<int>(LegID::RR)] =  c_pitch + c_roll;
-//     zOffset[static_cast<int>(LegID::RL)] =  c_pitch - c_roll;
-
-//     // Appliquer
-//     auto pStart = getLegsPositions();
-//     std::vector<std::pair<LegID, std::array<float,3>>> targets;
-//     for (int i = 0; i < 4; ++i) {
-//         auto p = pStart[i];
-//         p[2] += zOffset[i];
-//         p[2] = std::clamp(p[2], -220.0f, 80.0f); // limites sécurisées
-//         targets.push_back({static_cast<LegID>(i), p});
-//     }
-
-//     moveLegs({}, targets, false, 0, 1);
-// }
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
     if (!stabilizer) throw std::runtime_error("Stabilizer not initialized");
