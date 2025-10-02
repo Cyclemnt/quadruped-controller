@@ -6,7 +6,7 @@ RobotServer::RobotServer() : steve(&driver, &imu, &stabilizer), current_mode(IDL
     s.set_message_handler(std::bind(&RobotServer::on_message, this, _1, _2));
 
     // Position de repos au démarrage
-    steve.rest();
+    steve.startup();
 
     // Lancer la boucle continue dans un thread
     loop_thread = std::thread(&RobotServer::loop, this);

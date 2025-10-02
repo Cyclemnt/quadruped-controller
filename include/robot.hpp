@@ -41,9 +41,10 @@ public:
     );
 
     void resetLegs();
+    void startup();
+    void tidy();
     void rest();
 
-    void sit(bool down);
     void walk();
     void run(bool frontwards);
     void stopRunning();

@@ -18,6 +18,7 @@ Robot::Robot(PCA9685* driver, BNO055* imu_, Stabilizer* stabilizer_)
       imu(imu_), stabilizer(stabilizer_), bodyHeight(RESTING_H), runningStepSize(RUNNING_STEP_SIZE), turningStepAngle(TURNING_ANGLE_A_STEP_COVERS) {}
 
 Robot::~Robot() {
+    tidy();
     for (int i = 0; i < legs.size(); i++)
         legs[i].~Leg();
     if (imu != nullptr) imu->~BNO055();
@@ -124,27 +125,38 @@ void Robot::resetLegs() {
         legs[i].reset();
 }
 
-// Standard stance
-void Robot::rest() {
-    std::array<float, 3> p = {RESTING_X, RESTING_Y, RESTING_H};
-    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {{LegID::FL, p}, {LegID::FR, p}, {LegID::RR, p}, {LegID::RL, p}};
-    moveLegs({}, targets, false, 0, 1);
+void Robot::startup() {
+    for (int i = 0; i < 4; i++) {
+        legs[i].setAngles(0.7854f, 1.309f, 0);
+        for (int j = 1; j < 11; j++) {
+            legs[i].setAngles(0.7854f, 1.309f, j * 0.2407f);
+            std::this_thread::sleep_for(std::chrono::milliseconds(STANDARD_DELAY));
+        }
+        for (int j = 1; j < 11; j++) {
+            legs[i].setAngles(0.7854f, j * 0.1048f, 2.407f);
+            std::this_thread::sleep_for(std::chrono::milliseconds(STANDARD_DELAY));
+        }
+    }
+    bodyHeight = -120.0f;
+    rest();
 }
 
-// Sit (change height)
-void Robot::sit(bool down) {
-    float zTarget = down ? SITTING_LOWER_HEIGHT : SITTING_HIGHER_HEIGHT;
-
-    std::array<std::array<float, 3>, 4> pStart = getLegsPositions();
-    std::array<std::array<float, 3>, 4> pTargets;
-
-    for (int i = 0; i < 4; ++i) {
-        pTargets[i] = pStart[i];  // Target = Start
-        pTargets[i][2] = zTarget; // Except zTarget
+void Robot::tidy() {
+    bodyHeight = -120.0f;
+    rest();
+    for (int i = 0; i < 4; i++) {
+        for (int j = 1; j < 11; j++) {
+            legs[i].setAngles(0.7854f, j * 0.1309f, 2.407f);
+            std::this_thread::sleep_for(std::chrono::milliseconds(STANDARD_DELAY));
+        }
     }
+}
 
-    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {{LegID::FL, pTargets[0]}, {LegID::FR, pTargets[1]}, {LegID::RR, pTargets[2]}, {LegID::RL, pTargets[3]}};
-    moveLegs({}, targets, false);
+// Standard stance
+void Robot::rest() {
+    std::array<float, 3> p = {RESTING_X, RESTING_Y, bodyHeight};
+    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {{LegID::FL, p}, {LegID::FR, p}, {LegID::RR, p}, {LegID::RL, p}};
+    moveLegs({}, targets, false, 0, 1);
 }
 
 // Walk forward
@@ -274,6 +286,6 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
     return ps;
 }
 
-void Robot::setBodyHeight(float newHeight) { bodyHeight = newHeight; }
-void Robot::setRunningStepSize(float newSize) { runningStepSize = newSize; }
-void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = newAngle; }
+void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, 220.0f, -120.0f); }
+void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 10.0f, 100.0f); }
+void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = std::clamp(newAngle, 5.0f, 30.0f); }
