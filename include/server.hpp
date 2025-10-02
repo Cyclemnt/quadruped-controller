@@ -32,6 +32,7 @@ private:
 
     server s;
     std::atomic<RobotMode> current_mode;
+    std::atomic<RobotMode> next_mode;
     std::thread loop_thread;
 };
 
