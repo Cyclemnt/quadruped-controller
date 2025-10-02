@@ -15,7 +15,7 @@ Robot::Robot(PCA9685* driver, BNO055* imu_, Stabilizer* stabilizer_)
             Leg(LegID::RR, driver, {6, 7, 8}),
             Leg(LegID::RL, driver, {9,10,11})
         }},
-      imu(imu_), stabilizer(stabilizer_) {}
+      imu(imu_), stabilizer(stabilizer_), bodyHeight(RESTING_H), runningStepSize(RUNNING_STEP_SIZE), turningStepAngle(TURNING_ANGLE_A_STEP_COVERS) {}
 
 Robot::~Robot() {
     for (int i = 0; i < legs.size(); i++)
@@ -96,7 +96,7 @@ void Robot::rotateLegs(std::vector<LegID>& legsLifted, std::vector<LegID>& legsF
 
         float x = r * std::cos(theta);
         float y = r * std::sin(theta);
-        float z = TURNING_BODY_HEIGHT;
+        float z = bodyHeight;
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -189,9 +189,9 @@ void Robot::walk() {
 }
 
 void Robot::run(bool frontwards) {
-    constexpr float h = RUNNING_BODY_HEIGHT;
+    const float h = bodyHeight;
     constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
-    const float step = frontwards ? RUNNING_STEP_SIZE : -RUNNING_STEP_SIZE;  // Distance a steps adds
+    const float step = frontwards ? runningStepSize : -runningStepSize;  // Distance a steps adds
     constexpr float stepHeight = RUNNING_STEP_HEIGHT;
     constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
 
@@ -202,8 +202,6 @@ void Robot::run(bool frontwards) {
     //     {LegID::RR, {dx, dx, h}}, // RR
     //     {LegID::RL, {dx, dx, h}}  // RL
     // };
-    // moveLegs({}, targetFlats, 0);
-    // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         moveLegs({{LegID::FL, {dx + step, dx, h}}, {LegID::RR, {dx - step, dx, h}}},
                  {{LegID::FR, {dx, dx - step, h}}, {LegID::RL, {dx, dx + step, h}}}, 0, stepHeight, pointsPerMovement);
@@ -216,7 +214,7 @@ void Robot::run(bool frontwards) {
 }
 
 void Robot::stopRunning() {
-    constexpr float h = RUNNING_BODY_HEIGHT;
+    const float h = bodyHeight;
     constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
     constexpr float stepHeight = RUNNING_STEP_HEIGHT;
     constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
@@ -227,7 +225,7 @@ void Robot::stopRunning() {
 
 // Turn left
 void Robot::turn(bool left) {
-    const float angle = left ? TURNING_ANGLE_A_STEP_COVERS : -TURNING_ANGLE_A_STEP_COVERS;
+    const float angle = left ? turningStepAngle : -turningStepAngle;
 
     //rest();
     std::vector<LegID> a = {LegID::FL, LegID::RR};
@@ -275,3 +273,7 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
     }
     return ps;
 }
+
+void Robot::setBodyHeight(float newHeight) { bodyHeight = newHeight; }
+void Robot::setRunningStepSize(float newSize) { runningStepSize = newSize; }
+void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = newAngle; }

@@ -36,7 +36,26 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
 
     else if (cmd == "stabilize_start") next_mode = STABILIZE;
     else if (cmd == "stabilize_stop") next_mode = IDLE;
+
+    // --- sliders ---
+    else if (cmd.rfind("set_height:", 0) == 0) {
+        int value = std::stoi(cmd.substr(11));
+        std::cout << "Setting body height: " << value << std::endl;
+        steve.setBodyHeight(-value);
+        steve.rest(); // appliquer immédiatement la nouvelle hauteur
+    }
+    else if (cmd.rfind("set_step_size:", 0) == 0) {
+        int value = std::stoi(cmd.substr(14));
+        std::cout << "Setting running step size: " << value << std::endl;
+        steve.setRunningStepSize(value);
+    }
+    else if (cmd.rfind("set_step_angle:", 0) == 0) {
+        int value = std::stoi(cmd.substr(15));
+        std::cout << "Setting turning step angle: " << value << std::endl;
+        steve.setTurningStepAngle(value);
+    }
 }
+
 
 void RobotServer::loop() {
     while (true) {

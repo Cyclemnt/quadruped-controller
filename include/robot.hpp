@@ -20,6 +20,8 @@ private:
 
     std::chrono::steady_clock::time_point lastUpdate;
 
+    float bodyHeight, runningStepSize, turningStepAngle;
+
 public:
     Robot(PCA9685* driver, BNO055* imu_ = nullptr, Stabilizer* stabilizer_ = nullptr);
     ~Robot();
@@ -51,6 +53,10 @@ public:
 
     std::array<float, 3> getLegPosition(LegID id) const;
     std::array<std::array<float, 3>, 4> getLegsPositions() const;
+
+    void setBodyHeight(float newHeight);
+    void setRunningStepSize(float newSize);
+    void setTurningStepAngle(float newAngle);
 };
 
 #endif // ROBOT_HPP
