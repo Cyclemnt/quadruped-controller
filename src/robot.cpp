@@ -156,7 +156,7 @@ void Robot::tidy() {
 void Robot::rest() {
     std::array<float, 3> p = {RESTING_X, RESTING_Y, bodyHeight};
     std::vector<std::pair<LegID, std::array<float, 3>>> targets = {{LegID::FL, p}, {LegID::FR, p}, {LegID::RR, p}, {LegID::RL, p}};
-    moveLegs({}, targets, false, 0, 1);
+    moveLegs({}, targets, false, 0, 2);
 }
 
 // Walk forward
@@ -200,10 +200,13 @@ void Robot::walk() {
     }
 }
 
-void Robot::run(bool frontwards) {
+void Robot::run(float x, float y) {
     const float h = bodyHeight;
     constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
-    const float step = frontwards ? runningStepSize : -runningStepSize;  // Distance a steps adds
+    const float mag = std::sqrt(x * x + y * y); // Magnitude of direction vector
+    x = x / mag; y = y / mag; // Normalize vector
+    const float magu = std::sqrt(x * x + y * y); // Magnitude of normalized direction vector
+    const float step = magu * runningStepSize;  // Distance a steps adds
     constexpr float stepHeight = RUNNING_STEP_HEIGHT;
     constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
 
@@ -215,12 +218,12 @@ void Robot::run(bool frontwards) {
     //     {LegID::RL, {dx, dx, h}}  // RL
     // };
 
-        moveLegs({{LegID::FL, {dx + step, dx, h}}, {LegID::RR, {dx - step, dx, h}}},
-                 {{LegID::FR, {dx, dx - step, h}}, {LegID::RL, {dx, dx + step, h}}}, 0, stepHeight, pointsPerMovement);
+        moveLegs({{LegID::FL, {dx + step * x, dx + step * y, h}}, {LegID::RR, {dx - step * x, dx - step * y, h}}},
+                 {{LegID::FR, {dx + step * y, dx - step * x, h}}, {LegID::RL, {dx - step * y, dx + step * x, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}},
 //                 {{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
-        moveLegs({{LegID::FR, {dx, dx + step, h}}, {LegID::RL, {dx, dx - step, h}}},
-                 {{LegID::FL, {dx - step, dx, h}}, {LegID::RR, {dx + step, dx, h}}}, 0, stepHeight, pointsPerMovement);
+        moveLegs({{LegID::FR, {dx - step * y, dx + step * x, h}}, {LegID::RL, {dx + step * y, dx - step * x, h}}},
+                 {{LegID::FL, {dx - step * x, dx - step * y, h}}, {LegID::RR, {dx + step * x, dx + step * y, h}}}, 0, stepHeight, pointsPerMovement);
 //        moveLegs({{LegID::FL, {dx, dx, h}}, {LegID::RR, {dx, dx, h}}},
 //                 {{LegID::FR, {dx, dx, h}}, {LegID::RL, {dx, dx, h}}}, 0, stepHeight, pointsPerMovement);
 }
@@ -286,6 +289,6 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
     return ps;
 }
 
-void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, 220.0f, -120.0f); }
-void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 10.0f, 100.0f); }
+void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, -220.0f, -120.0f); }
+void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 20.0f, 60.0f); }
 void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = std::clamp(newAngle, 5.0f, 30.0f); }

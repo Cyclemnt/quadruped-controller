@@ -46,7 +46,7 @@ public:
     void rest();
 
     void walk();
-    void run(bool frontwards);
+    void run(float x, float y);
     void stopRunning();
     void turn(bool left);
 

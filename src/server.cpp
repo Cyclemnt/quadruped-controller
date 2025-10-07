@@ -22,11 +22,16 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
     std::string cmd = msg->get_payload();
     std::cout << "Commande reçue: " << cmd << std::endl;
 
-    if (cmd == "run_forward_start") next_mode = RUN_FWD;
-    else if (cmd == "run_forward_stop") next_mode = IDLE;
-
-    else if (cmd == "run_backward_start") next_mode = RUN_BWD;
-    else if (cmd == "run_backward_stop") next_mode = IDLE;
+    if (cmd.rfind("run_vector:", 0) == 0) {
+        std::string data = cmd.substr(11);
+        float x = 0, y = 0;
+        sscanf(data.c_str(), "%f,%f", &x, &y);
+        last_vector = {x, y};
+        next_mode = RUN;
+    }
+    else if (cmd == "run_stop") {
+        next_mode = IDLE;
+    }
 
     else if (cmd == "turn_left_start") next_mode = TURN_LEFT;
     else if (cmd == "turn_left_stop") next_mode = IDLE;
@@ -44,43 +49,41 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
         steve.setBodyHeight(-value);
         steve.rest(); // appliquer immédiatement la nouvelle hauteur
     }
-    else if (cmd.rfind("set_step_size:", 0) == 0) {
-        int value = std::stoi(cmd.substr(14));
-        std::cout << "Setting running step size: " << value << std::endl;
-        steve.setRunningStepSize(value);
-    }
     else if (cmd.rfind("set_step_angle:", 0) == 0) {
         int value = std::stoi(cmd.substr(15));
         std::cout << "Setting turning step angle: " << value << std::endl;
         steve.setTurningStepAngle(value);
     }
-}
 
+    else if (cmd == "emergency_stop") {
+        std::cout << "Emergency stop triggered!" << std::endl;
+        steve.tidy();
+        //exit(0);
+    }
+}
 
 void RobotServer::loop() {
     while (true) {
-        RobotMode nm = next_mode.load();   // lire la valeur
+        RobotMode nm = next_mode.load();
         RobotMode cm = current_mode.load();
 
-        // Vérifie si un changement de mode est demandé
         if (nm != cm) {
-            // Cas particulier : sortie de run -> stopRunning()
-            if ((cm == RUN_FWD || cm == RUN_BWD) && nm == IDLE) {
+            // Si on quitte un mode "run", on arrête la marche
+            if (cm == RUN && nm == IDLE) {
                 std::cout << "Arrêt du run -> stopRunning()" << std::endl;
                 steve.stopRunning();
             }
 
-            current_mode.store(nm);   // écrire la nouvelle valeur
+            current_mode.store(nm);
         }
 
-        // Exécute le mode courant
+        // Exécution du mode courant
         switch (current_mode.load()) {
-            case RUN_FWD: steve.run(true); break;
-            case RUN_BWD: steve.run(false); break;
+            case RUN: steve.run(last_vector.first, last_vector.second); break;
             case TURN_LEFT: steve.turn(true); break;
             case TURN_RIGHT: steve.turn(false); break;
             case STABILIZE: steve.level(); break;
-            case IDLE: /* ne fait rien */ break;
+            case IDLE: break;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
