@@ -53,7 +53,7 @@ void Robot::moveLegs(
 
         float x = (1 - t) * pStart[i][0] + t * target[0];
         float y = (1 - t) * pStart[i][1] + t * target[1];
-        float z = (1 - t) * pStart[i][2] + t * target[2];
+        float z = (1 - t) * pStart[i][2] + t * target[2] + computeZOffset(static_cast<LegID>(i), x, y);
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -97,7 +97,7 @@ void Robot::rotateLegs(std::vector<LegID>& legsLifted, std::vector<LegID>& legsF
 
         float x = r * std::cos(theta);
         float y = r * std::sin(theta);
-        float z = bodyHeight;
+        float z = bodyHeight + computeZOffset(static_cast<LegID>(i), x, y);
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -249,6 +249,26 @@ void Robot::turn(bool left) {
     rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
 }
 
+float Robot::computeZOffset(LegID leg, float x, float y) {
+    // angleDeg > 0: head up, angleDeg < 0: head down
+    const float angleRad = pitch * M_PIf / 180.0f;
+    const float tanAngle = std::tan(angleRad);
+    int i = static_cast<int>(leg);
+
+    switch (i) {
+        case 0: break;
+        case 1: x = y;
+        case 2: x = -x;
+        case 3: x = -y;
+    }
+
+    return (i < 2) ? tanAngle * x : -tanAngle * x;
+}
+
+void Robot::setPitch(float angleDeg) {
+    pitch = std::clamp(angleDeg, -20.0f, 20.0f);
+}
+
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
     if (!stabilizer) throw std::runtime_error("Stabilizer not initialized");
@@ -261,7 +281,7 @@ void Robot::level() {
     if (dt <= 0) dt = 0.01f;
     lastUpdate = now;
 
-    stabilizer->computeOffsets(euler[2], euler[1], dt, positions);
+    stabilizer->computeOffsets(euler[2], euler[1] - pitch, dt, positions);
 
     // Conversion direct -> moveLegs
     std::vector<std::pair<LegID, std::array<float,3>>> targets;

@@ -21,6 +21,8 @@ private:
     std::chrono::steady_clock::time_point lastUpdate;
 
     float bodyHeight, runningStepSize, turningStepAngle;
+    std::array<float, 4> zOffset;
+    float pitch; 
 
 public:
     Robot(PCA9685* driver, BNO055* imu_ = nullptr, Stabilizer* stabilizer_ = nullptr);
@@ -45,10 +47,13 @@ public:
     void tidy();
     void rest();
 
+
     void walk();
     void run(float x, float y);
     void stopRunning();
     void turn(bool left);
+    float computeZOffset(LegID leg, float x, float y);
+    void setPitch(float angleDeg);
 
     void level();
 

@@ -54,7 +54,12 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
         std::cout << "Setting turning step angle: " << value << std::endl;
         steve.setTurningStepAngle(value);
     }
-
+    else if (cmd.rfind("set_pitch:", 0) == 0) {
+        int value = std::stoi(cmd.substr(10));
+        std::cout << "Setting pitch: " << value << std::endl;
+        steve.setPitch(value);
+        steve.rest(); // appliquer immédiatement la nouvelle orientation
+    }
     else if (cmd == "emergency_stop") {
         std::cout << "Emergency stop triggered!" << std::endl;
         steve.tidy();

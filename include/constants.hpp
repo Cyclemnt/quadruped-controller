@@ -30,6 +30,9 @@
 #define TURNING_BODY_HEIGHT -120.0f
 #define TURNING_ANGLE_A_STEP_COVERS 15.0f
 
+// Pitch changing parameter
+#define PITCH_CHANGING_STEPS 3
+
 // Level keeping controller parameters
 #define LEVELING_P 2.0f
 #define LEVELING_I 0.0f
