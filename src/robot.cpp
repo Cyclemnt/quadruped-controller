@@ -205,8 +205,8 @@ void Robot::run(float x, float y) {
     constexpr float dx = RUNNING_LEG_DISTANCE_FROM_BODY;   // Distance from body to end of leg on the sides
     const float mag = std::sqrt(x * x + y * y); // Magnitude of direction vector
     x = x / mag; y = y / mag; // Normalize vector
-    const float magu = std::sqrt(x * x + y * y); // Magnitude of normalized direction vector
-    const float step = magu * runningStepSize;  // Distance a steps adds
+    //const float magu = std::sqrt(x * x + y * y); // Magnitude of normalized direction vector
+    const float step = mag * runningStepSize;  // Distance a steps adds
     constexpr float stepHeight = RUNNING_STEP_HEIGHT;
     constexpr int pointsPerMovement = RUNNING_POINTS_PER_MOVEMENT;
 
