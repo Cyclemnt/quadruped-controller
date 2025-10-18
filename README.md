@@ -1,104 +1,122 @@
 # Quadruped Robot Controller
 
-A C++ controller for a 4-legged quadruped robot with 3 degrees of freedom per leg. This project includes inverse kinematics, smooth interpolation for movement, and will soon support real-time control using a PCA9685 PWM driver.
+## Overview
 
-## Project Structure
+This project implements a full control system for a quadruped robot developed by a team of robotics engineering students.  
+The system is designed to run on a **Raspberry Pi Zero 2 W**, controlling 12 servo motors via a **PCA9685 PWM driver** and obtaining chassis orientation from a **BNO055 IMU**.  
+The robot can walk omnidirectionally, rotate, and adjust its body posture in real time through a **web-based control interface** served by the onboard software.
 
-```
-.
-├── CMakeLists.txt
-├── include
-│   ├── joint.hpp
-│   ├── kinematics.hpp
-│   ├── leg.hpp
-│   ├── pca9685.hpp
-│   └── robot.hpp
-├── README.md
-└── src
-    ├── joint.cpp
-    ├── kinematics.cpp
-    ├── leg.cpp
-    ├── main.cpp
-    ├── pca9685.cpp
-    └── robot.cpp
-```
+The C++ core handles servo coordination, inverse kinematics, and gait control, while a Python server hosts a control webpage (`controller.html`) that communicates with the robot via WebSockets.
 
-## Features
+---
 
-* Individual control of all four legs (FL, FR, RR, RL).
-* Smooth motion via linear interpolation and lift trajectory for leg clearance.
-* Inverse and forward kinematics implementations.
-* Mechanical offset compensation for servo alignment.
-* Core movement primitives:
+## Hardware Architecture
 
-  * `resetLegs()` — Set all legs to a default neutral position.
-  * `rest()` — Set robot to a predefined resting position.
-  * `sit(bool)` — Transition between low and high standing height.
-  * `level()` — Tries to stay at level using IMU.
-  * `walk()` — Perform a basic walking gait.
-  * `run()` — Perform a basic trot gait.
-  * `turn()` — Perform a basic turning gait.
+| Component | Description |
+|------------|-------------|
+| **Raspberry Pi Zero 2 W** | Main controller running the C++ code and web server |
+| **PCA9685 (I²C)** | 16-channel PWM driver controlling the 12 servo motors (3 per leg) |
+| **BNO055 (I²C)** | 9-axis IMU providing real-time orientation and stabilization feedback |
+| **Servomotors (x12)** | Three per leg: Coxa (hip yaw), Femur (hip pitch), Tibia (knee pitch) |
 
-## Dependencies
+---
 
-* **C++17** or later.
-* **PCA9685 driver** to control servo motors via I2C.
-* **Raspberry Pi** (or compatible) to run the software and interface with the PCA9685 board.
-* **BNO055 imu** to measure orientation.
-* **[CMake](https://cmake.org/)** to configure and build the project.
 
-## Building the Project
+### Main Classes
+- **`Joint`** – Encapsulates one servo actuator, handling angle commands and limits.  
+- **`Leg`** – Controls a leg with three joints; computes and applies servo angles.  
+- **`Kinematics`** – Provides forward and inverse kinematics computations.  
+- **`Robot`** – Coordinates all legs, gait sequencing, movement, and body posture.  
+- **`Stabilizer`** – Uses IMU data to maintain body balance and pitch correction.  
+- **`Server`** – Implements a WebSocket server to receive remote commands.  
 
-Compile using `CMake`:
+---
+
+## Gait Algorithm and Trajectory Interpolation
+
+The **gait algorithm** defines the coordinated sequence of leg movements that enable omnidirectional walking and rotation.  
+At each control cycle, legs are divided into two groups:
+- **Lifted legs** – move toward their next support position,
+- **Flat legs** – remain on the ground, supporting the body.
+
+Each leg’s trajectory between its current and target position is interpolated over several steps:
+
+- **Linear interpolation** is used for translational motion:  
+  The `(x, y, z)` position evolves linearly between two points, with a smooth vertical offset (`z`) added using a hyperbolic cosine function for the lifting phase.  
+
+- **Circular interpolation** is used for rotations:  
+  Legs follow an arc path around the robot’s center to simulate turning in place.  
+
+The inverse kinematics solver (`Kinematics::computeIK`) converts the desired leg tip coordinates into joint angles for the PCA9685 driver.
+
+---
+
+## Web-Based Control Interface
+
+The onboard WebSocket server (implemented with **websocketpp**) allows real-time control from any device connected to the same network.
+
+The `controller.html` page provides:
+- Directional control (forward/backward/sideways movement)
+- Rotation (left/right)
+- Adjustable parameters:
+  - Body height  
+  - Step size  
+  - Turning step angle  
+  - Pitch adjustment  
+- Emergency stop button  
+
+Commands are sent as WebSocket messages (e.g., `run_vector:x,y`, `turn_left_start`, `set_height:val`), parsed by the server, and executed in the robot’s control loop.
+
+---
+
+## System Requirements & Dependencies
+
+### Hardware
+- Raspberry Pi Zero 2 W (or equivalent Pi model with I²C)
+- PCA9685 servo driver
+- BNO055 IMU
+- 12× servo motors (tested with MG996R)
+
+### Software
+| Component | Version / Note |
+|------------|----------------|
+| **Raspberry Pi OS (Bullseye or later)** | Recommended |
+| **CMake** | ≥ 3.10 |
+| **g++** | C++17 or newer |
+| **websocketpp** | Header-only library |
+| **Boost.Asio** | Used by websocketpp for networking |
+| **i2c-dev** | Provides I²C access on Linux |
+| **pigpio** or **wiringPi** | For low-level GPIO/I²C control |
+
+---
+
+## Build Instructions
 
 ```bash
-cd QuadrupedController
+# Clone the repository
+git clone https://github.com/Cyclemnt/quadruped-controller.git
+cd quadruped-controller
+
+# Create build directory
 mkdir build && cd build
-cmake .. && make
-./main
-```  
 
-## Example Usage
+# Configure and compile
+cmake ..
+make
 
-```cpp
-#include "../include/pca9685.hpp"
-#include "../include/robot.hpp"
-
-int main() {
-    PCA9685 driver;
-    Robot robot(&driver);
-
-    robot.rest();
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-    robot.sit(true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    robot.sit(false);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // Main loop
-    while (true) {
-        robot.walk();
-    }
-
-    driver.disableAllPWM();
-    return 0;
-}
+# Start the server and run the main executable
+cd ../webapp python3 -m http.server 8080 & cd ../build ./main
 ```
 
-## Technical Highlights
-
-* **Forward Kinematics (FK):** Calculates 3D foot position (x, y, z) from joint angles.
-* **Inverse Kinematics (IK):** Calculates joint angles from 3D foot position (x, y, z).
-* **Smooth Trajectories:** Custom interpolation curve for lifting motion based on hyperbolic cosine.
-* **Mechanical Calibration:** Angle offsets are handled inside the Leg class to compensate for non-zero default servo positions.
+The server will start and listen on the configured port.
+Once running, open the http://\<raspberrypi-ip\>:8080/controller.html page in a web browser connected to the same network.
 
 ## Future Work
 
-* Add directional turning (turn left/right).
-* Implement real-time control.
+- Implementation of dynamic gait adjustment based on IMU feedback
+- Integration of force sensors for adaptive terrain response
 
-## Contributions
-
-**Author:** Clément Lamouller  
-**Trot gait research** Luan Parizot
+## Authors
+This project was developed as part of a Robotics Engineering Master's program at Polytech Dijon by a student team.
+- Controller author: Clément Lamouller
+- Trot gait research: Luan Parizot
