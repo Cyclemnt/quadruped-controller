@@ -256,13 +256,13 @@ float Robot::computeZOffset(LegID leg, float x, float y) {
     int i = static_cast<int>(leg);
 
     switch (i) {
-        case 0: break;
+        case 0: break; // WHAT THE FUCK
         case 1: x = y;
         case 2: x = -x;
         case 3: x = -y;
     }
 
-    return (i < 2) ? tanAngle * x : -tanAngle * x;
+    return (i < 2) ? tanAngle * (x + CHASSIS * 0.5f) : -tanAngle * (x + CHASSIS * 0.5f);
 }
 
 void Robot::setPitch(float angleDeg) {

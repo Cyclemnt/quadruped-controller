@@ -1,4 +1,5 @@
 #include "../include/kinematics.hpp"
+#include "../include/constants.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>

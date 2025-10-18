@@ -1,6 +1,12 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+// Robot dimensions
+#define COXA 60.0f
+#define FEMUR 100.0f
+#define TIBIA 163.0f
+#define CHASSIS 140.0f
+
 // Miscellaneous
 #define STANDARD_DELAY 20
 #define STANDARD_HEIGHT -170.0f
