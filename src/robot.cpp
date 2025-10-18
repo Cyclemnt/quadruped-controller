@@ -256,7 +256,7 @@ float Robot::computeZOffset(LegID leg, float x, float y) {
     int i = static_cast<int>(leg);
 
     switch (i) {
-        case 0: break; // WHAT THE FUCK
+        case 0: break; // ???????
         case 1: x = y;
         case 2: x = -x;
         case 3: x = -y;
