@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S.T.E.V.E Controller</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Roboto+Mono&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0; height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f0f0f, #2a2a2a);
+      font-family: 'Roboto Mono', monospace;
+      color: #d0d6db;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 500; font-size: 2rem; color: #00eaff;
+      text-shadow: 0 0 15px #00eaff88; margin-bottom: 1rem;
+    }
+    .status { display:flex; align-items:center; gap:10px; margin-bottom:20px; color:#5a7a9a; }
+    .led { width:16px; height:16px; border-radius:50%;
+      background:#aa0000; box-shadow:0 0 6px #aa0000aa; }
+    .led.connected { background:#00cc66; box-shadow:0 0 12px #00cc66cc; }
+
+    .layout {
+      display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start; justify-content:center;
+    }
+
+    .controller {
+      display:grid;
+      grid-template-columns:70px 70px 70px;
+      grid-template-rows:70px 70px 70px;
+      gap:10px; background:#121212;
+      padding:20px; border-radius:20px;
+      box-shadow: inset 0 0 10px #005577aa, 0 0 15px #0088ffaa;
+      border:2px solid #004466;
+    }
+    button {
+      background:linear-gradient(145deg,#2e2e2e,#1a1a1a);
+      border:none; border-radius:12px;
+      box-shadow: inset 2px 2px 4px #0a0a0a, inset -2px -2px 5px #404040, 2px 2px 5px #000000bb;
+      color:#00eaff; font-size:1rem; font-weight:bold;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition: all .2s;
+      text-align:center;
+    }
+    button:hover { color:#66faff; transform:translateY(-2px); }
+    button:active { transform:translateY(1px); color:#00bbdd; }
+
+    .up    { grid-column:2; grid-row:1; }
+    .left  { grid-column:1; grid-row:2; }
+    .center{ grid-column:2; grid-row:2; }
+    .right { grid-column:3; grid-row:2; }
+    .down  { grid-column:2; grid-row:3; }
+
+    .sliders {
+      background:#121212;
+      padding:20px;
+      border-radius:20px;
+      box-shadow: inset 0 0 10px #004466aa, 0 0 15px #00eaff66;
+      border:2px solid #003344;
+      width:250px;
+    }
+    .slider-container {
+      margin-bottom:20px;
+    }
+    .slider-container label {
+      display:flex; justify-content:space-between;
+      font-size:14px; margin-bottom:5px;
+    }
+    input[type=range] { width:100%; }
+    .value { font-weight:bold; color:#00ff99; }
+
+    .reset-btn {
+      margin-top:10px;
+      width:100%;
+      background:#ff4d4d;
+      border:none;
+      padding:12px;
+      border-radius:12px;
+      font-size:14px;
+      font-weight:bold;
+      cursor:pointer;
+      transition:0.2s;
+      color:#fff;
+    }
+    .reset-btn:hover { background:#cc0000; }
+
+    /* --- Joystick --- */
+    .joystick-container {
+      width: 200px; height: 200px;
+      background: #121212;
+      border-radius: 50%;
+      position: relative;
+      border: 2px solid #004466;
+      box-shadow: inset 0 0 10px #005577aa, 0 0 15px #0088ffaa;
+      touch-action: none;
+    }
+    .joystick-handle {
+      width: 70px; height: 70px;
+      background: radial-gradient(circle, #00eaff, #004466);
+      border-radius: 50%;
+      position: absolute;
+      left: 65px; top: 65px;
+      transition: 0.05s;
+      box-shadow: 0 0 15px #00eaff88;
+    }
+  </style>
+</head>
+<body>
+  <h1>S.T.E.V.E Controller</h1>
+
+  <div class="status">
+    <div id="led" class="led"></div>
+    <div id="status-text">Disconnected</div>
+  </div>
+
+  <div class="layout">
+    <!-- Flèches tourner -->
+    <div class="controller">
+	<button class="left"
+	    onmousedown="send('turn_left_start')" onmouseup="send('turn_left_stop')"
+    	    ontouchstart="send('turn_left_start')" ontouchend="send('turn_left_stop')">◄</button>
+
+  	<button class="center"
+    	    onmousedown="send('stabilize_start')" onmouseup="send('stabilize_stop')"
+    	    ontouchstart="send('stabilize_start')" ontouchend="send('stabilize_stop')">=</button>
+
+  	<button class="right"
+    	    onmousedown="send('turn_right_start')" onmouseup="send('turn_right_stop')"
+    	    ontouchstart="send('turn_right_start')" ontouchend="send('turn_right_stop')">►</button>
+    </div>
+
+    <!-- Joystick -->
+    <div class="joystick-container" id="joystick">
+      <div class="joystick-handle" id="joystick-handle"></div>
+    </div>
+
+    <!-- Sliders -->
+    <div class="sliders">
+      <div class="slider-container">
+        <label>Body Height (120–220): <span id="heightValue" class="value">120</span></label>
+        <input id="heightSlider" type="range" min="120" max="220" value="120"
+          oninput="updateValue('heightValue', this.value); send('set_height:' + this.value)">
+      </div>
+      <div class="slider-container">
+        <label>Turning Step Angle (5–45): <span id="stepAngleValue" class="value">15</span></label>
+        <input id="stepAngleSlider" type="range" min="5" max="45" value="15"
+          oninput="updateValue('stepAngleValue', this.value); send('set_step_angle:' + this.value)">
+      </div>
+      <button class="reset-btn" onclick="resetDefaults()">🔄 Reset Defaults</button>
+      <button class="reset-btn" onclick="send('emergency_stop')">🛑 Emergency Stop</button>
+    </div>
+  </div>
+
+  <script>
+    let ws = new WebSocket(`ws://172.29.74.179:9002`); // Pi IP here
+    const led = document.getElementById('led');
+    const statusText = document.getElementById('status-text');
+
+    ws.onopen = () => {
+      led.classList.add("connected");
+      statusText.textContent = "Connected";
+      statusText.style.color = "#00cc66";
+    };
+    ws.onclose = () => {
+      led.classList.remove("connected");
+      statusText.textContent = "Disconnected";
+      statusText.style.color = "#aa0000";
+    };
+
+    function send(msg) {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
+    }
+    function updateValue(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+    function resetDefaults() {
+      document.getElementById('heightSlider').value = 120;
+      document.getElementById('stepAngleSlider').value = 15;
+      updateValue('heightValue', 120);
+      updateValue('stepAngleValue', 15);
+      send('set_height:120');
+      send('set_step_angle:15');
+    }
+
+    /* === Joystick === */
+    const joystick = document.getElementById('joystick');
+    const handle = document.getElementById('joystick-handle');
+    const radius = 100; // rayon du conteneur / 2
+    let active = false;
+
+    function sendVector(x, y) {
+      send(`run_vector:${x.toFixed(2)},${y.toFixed(2)}`);
+    }
+
+    function stopVector() {
+      send('run_stop');
+      handle.style.left = '65px';
+      handle.style.top = '65px';
+    }
+
+    function moveHandle(clientX, clientY) {
+      const rect = joystick.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const dist = Math.min(Math.sqrt(dx * dx + dy * dy), radius - 35);
+      const angle = Math.atan2(dy, dx);
+      const x = 0 - dy;
+      const y = 0 - dx;
+
+      handle.style.left = `${65 + Math.cos(angle) * dist}px`;
+      handle.style.top = `${65 + Math.sin(angle) * dist}px`;
+
+      sendVector(x, y);
+    }
+
+    joystick.addEventListener('mousedown', e => { active = true; moveHandle(e.clientX, e.clientY); });
+    joystick.addEventListener('mousemove', e => { if (active) moveHandle(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', () => { if (active) { active = false; stopVector(); }});
+
+    joystick.addEventListener('touchstart', e => { active = true; moveHandle(e.touches[0].clientX, e.touches[0].clientY); });
+    joystick.addEventListener('touchmove', e => { if (active) moveHandle(e.touches[0].clientX, e.touches[0].clientY); });
+    joystick.addEventListener('touchend', () => { active = false; stopVector(); });
+  </script>
+</body>
+</html>
