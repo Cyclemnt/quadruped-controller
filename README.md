@@ -57,7 +57,7 @@ The inverse kinematics solver (`Kinematics::computeIK`) converts the desired leg
 
 ## Web-Based Control Interface
 
-The onboard WebSocket server (implemented with **websocketpp**) allows real-time control from any device connected to the same network.
+The onboard WebSocket server (implemented with **[websocketpp](https://github.com/zaphoyd/websocketpp)**) allows real-time control from any device connected to the same network.
 
 The `controller.html` page provides:
 - Directional control (forward/backward/sideways movement)
@@ -87,7 +87,7 @@ Commands are sent as WebSocket messages (e.g., `run_vector:x,y`, `turn_left_star
 | **Raspberry Pi OS (Bullseye or later)** | Recommended |
 | **CMake** | ≥ 3.10 |
 | **g++** | C++17 or newer |
-| **websocketpp** | Header-only library |
+| **[websocketpp](https://github.com/zaphoyd/websocketpp)** | Header-only library |
 | **Boost.Asio** | Used by websocketpp for networking |
 | **i2c-dev** | Provides I²C access on Linux |
 | **pigpio** or **wiringPi** | For low-level GPIO/I²C control |
