@@ -8,6 +8,10 @@ The robot can walk omnidirectionally, rotate, and adjust its body posture in rea
 
 The C++ core handles servo coordination, inverse kinematics, and gait control, while a Python server hosts a control webpage (`controller.html`) that communicates with the robot via WebSockets.
 
+<p align="center">
+  <img src="demo.gif" alt="Demo" style="width: 50%;"/>
+</p>
+
 ---
 
 ## Hardware Architecture
