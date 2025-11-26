@@ -160,50 +160,77 @@ void Robot::rest() {
 }
 
 void Robot::hi() {
-    std::array<std::array<float, 3UL>, 4UL> pos = getLegsPositions();
-    std::array<float, 3UL> frPos = pos[1];
-    std::array<float, 3UL> rlPos = pos[3];
-    frPos[2] -= 80.0f;
-    rlPos[2] += 80.0f;
-    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {
-        {LegID::FL, pos[0]}, // FL
-        {LegID::FR, frPos}, // FR
-        {LegID::RR, pos[2]}, // RR
-        {LegID::RL, rlPos}  // RL
-    };
-    moveLegs({}, targets, true, 0.0f, 40);
-    
+    // paramètres (ajuste si besoin)
+    const float tiltZ = 60.0f;      // combien on baisse FR / monte RL pour l'inclinaison
+    const float liftZ  = 60.0f;     // élévation finale du pied FR pendant le 'lever'
+    const float arcH   = 30.0f;     // hauteur d'arc pour l'élévation (pour donner une courbe)
+    const int   stepsTilt = 40;     // interpolation pour l'inclinaison
+    const int   stepsLift = 40;     // interpolation pour lever FR
+    const int   stepsRotate = 12;   // pas pour tourner l'articulation
+    const auto  sleepMs = std::chrono::milliseconds(STANDARD_DELAY);
 
-    std::array<std::array<float, 3UL>, 4UL> posb = getLegsPositions();
-    std::array<float, 3UL> frPos = pos[1];
-    frPos[2] += 80.0f;
-    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {
-        {LegID::FL, posb[0]}, // FL
-        {LegID::FR, frPos}, // FR
-        {LegID::RR, posb[2]}, // RR
-        {LegID::RL, posb[3]}  // RL
-    };
-    moveLegs({}, targets, true, 0.0f, 20);
+    // 1) lire positions actuelles
+    auto pos = getLegsPositions();
+    // indices: 0=FL, 1=FR, 2=RR, 3=RL
+    auto fr = pos[1];
+    auto rl = pos[3];
 
-    auto a = legs[1].getAngles();
-    legs[1].setAngles(a[0], a[1], 1.57/2);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    legs[1].setAngles(a[0], a[1], 1.57);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    legs[1].setAngles(a[0], a[1], 1.57/2);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    legs[1].setAngles(a[0], a[1], a[2]);
+    // 2) Incliner : baisser FR et lever RL
+    std::array<float,3> frTilt = fr;
+    std::array<float,3> rlTilt = rl;
+    frTilt[2] -= tiltZ;   // abaisser FR
+    rlTilt[2] += tiltZ;   // lever RL
 
-    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {
-        {LegID::FL, pos[0]}, // FL
-        {LegID::FR, pos[1]}, // FR
-        {LegID::RR, pos[2]}, // RR
-        {LegID::RL, pos[3]}  // RL
+    std::vector<std::pair<LegID, std::array<float,3>>> tiltTargets = {
+        {LegID::FL, pos[0]},
+        {LegID::FR, frTilt},
+        {LegID::RR, pos[2]},
+        {LegID::RL, rlTilt}
     };
-    moveLegs({}, targets, true, 0.0f, 40);
+    // IMPORTANT: transformTarget = false parce que pos provient de getLegsPositions()
+    moveLegs({}, tiltTargets, false, 0.0f, stepsTilt);
+
+    // 3) Lever FR (faire un arc puis placer le pied plus haut)
+    auto posAfterTilt = getLegsPositions();
+    auto frAfter = posAfterTilt[1];
+
+    // Target final (FR plus haut)
+    std::array<float,3> frLiftTarget = frAfter;
+    frLiftTarget[2] += liftZ;
+
+    // On met FR dans targetsLifted pour avoir un arc (liftHeight = arcH)
+    moveLegs({{LegID::FR, frLiftTarget}}, {}, false, arcH, stepsLift);
+
+    // 4) Tourner progressivement le dernier axe (joint 3) du FR
+    auto anglesStart = legs[1].getAngles();
+    float startA3 = anglesStart[2];
+    float peakA3  = startA3 - (M_PIf / 2.0f); // tourner de +90° (1.5708)
+    // monter à peak
+    for (int s = 1; s <= stepsRotate; ++s) {
+        float t = static_cast<float>(s) / stepsRotate;
+        float a3 = startA3 + (peakA3 - startA3) * t;
+        legs[1].setAngles(anglesStart[0], anglesStart[1], a3);
+        std::this_thread::sleep_for(sleepMs);
+    }
+    // redescendre à startA3
+    for (int s = 1; s <= stepsRotate; ++s) {
+        float t = static_cast<float>(s) / stepsRotate;
+        float a3 = peakA3 + (startA3 - peakA3) * t;
+        legs[1].setAngles(anglesStart[0], anglesStart[1], a3);
+        std::this_thread::sleep_for(sleepMs);
+    }
+
+    // 5) Rétablir FR à sa position après inclinaison (descendre le pied levé)
+    // on ramène le FR au z d'avant levée (posAfterTilt[1][2])
+    std::array<float,3> frBack = frAfter; // z = posAfterTilt[1][2]
+    moveLegs({}, {{LegID::FL, posAfterTilt[0]}, {LegID::FR, frBack}, {LegID::RR, posAfterTilt[2]}, {LegID::RL, posAfterTilt[3]}}, false, 0.0f, stepsLift);
+
+    // 6) Remettre tout à la position initiale (pos au début de hi)
+    moveLegs({}, {{LegID::FL, pos[0]}, {LegID::FR, pos[1]}, {LegID::RR, pos[2]}, {LegID::RL, pos[3]}}, false, 0.0f, stepsTilt);
 }
 
 // Walk forward
+/*
 void Robot::walk() {
     float h = WALKING_BODY_HEIGHT;
     float dx = WALKING_LEG_DISTANCE_FROM_BODY;  // Distance from body to end of leg on the sides
@@ -243,6 +270,7 @@ void Robot::walk() {
         moveLegs({{LegID::RR, {dy, -dx, h}}}, {});          // STEP 4   x = -stride + stride
     }
 }
+*/
 
 void Robot::run(float x, float y) {
     const float h = bodyHeight;
@@ -293,26 +321,6 @@ void Robot::turn(bool left) {
     rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
 }
 
-float Robot::computeZOffset(LegID leg, float x, float y) {
-    // angleDeg > 0: head up, angleDeg < 0: head down
-    const float angleRad = pitch * M_PIf / 180.0f;
-    const float tanAngle = std::tan(angleRad);
-    int i = static_cast<int>(leg);
-
-    switch (i) {
-        case 0: break; // No necessary transformation
-        case 1: x = y; break; // FR : exchanging x and y
-        case 2: x = -x; break; // RR : inversing x
-        case 3: x = -y; break; // RL : inversing y
-    }
-
-    return (i < 2) ? tanAngle * (x + CHASSIS * 0.5f) : -tanAngle * (x + CHASSIS * 0.5f);
-}
-
-void Robot::setPitch(float angleDeg) {
-    pitch = std::clamp(angleDeg, -20.0f, 20.0f);
-}
-
 void Robot::level() {
     if (!imu) throw std::runtime_error("IMU not initialized");
     if (!stabilizer) throw std::runtime_error("Stabilizer not initialized");
@@ -356,3 +364,21 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
 void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, -220.0f, -120.0f); }
 void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 20.0f, 60.0f); }
 void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = std::clamp(newAngle, 5.0f, 30.0f); }
+
+void Robot::setPitch(float angleDeg) { pitch = std::clamp(angleDeg, -20.0f, 20.0f); }
+
+float Robot::computeZOffset(LegID leg, float x, float y) {
+    // angleDeg > 0: head up, angleDeg < 0: head down
+    const float angleRad = pitch * M_PIf / 180.0f;
+    const float tanAngle = std::tan(angleRad);
+    int i = static_cast<int>(leg);
+
+    switch (i) {
+        case 0: break; // No necessary transformation
+        case 1: x = y; break; // FR : exchanging x and y
+        case 2: x = -x; break; // RR : inversing x
+        case 3: x = -y; break; // RL : inversing y
+    }
+
+    return (i < 2) ? tanAngle * (x + CHASSIS * 0.5f) : -tanAngle * (x + CHASSIS * 0.5f);
+}

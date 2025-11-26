@@ -49,12 +49,10 @@ public:
 
     void hi();
 
-    void walk();
+    // void walk();
     void run(float x, float y);
     void stopRunning();
     void turn(bool left);
-    float computeZOffset(LegID leg, float x, float y);
-    void setPitch(float angleDeg);
 
     void level();
 
@@ -64,6 +62,8 @@ public:
     void setBodyHeight(float newHeight);
     void setRunningStepSize(float newSize);
     void setTurningStepAngle(float newAngle);
+    void setPitch(float angleDeg);
+    float computeZOffset(LegID leg, float x, float y);
 };
 
 #endif // ROBOT_HPP

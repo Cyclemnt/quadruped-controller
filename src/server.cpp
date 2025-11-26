@@ -60,14 +60,12 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
         steve.setPitch(value);
         steve.rest(); // appliquer immédiatement la nouvelle orientation
     }
+    else if (cmd == "hi") {
+        steve.hi();
+    }
     else if (cmd == "emergency_stop") {
         std::cout << "Emergency stop triggered!" << std::endl;
         steve.tidy();
-        //exit(0);
-    }
-    else if (cmd == "hi") {
-        std::cout << "Emote hi" << std::endl;
-        steve.hi();
         //exit(0);
     }
 }
