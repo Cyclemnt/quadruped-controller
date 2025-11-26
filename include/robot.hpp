@@ -47,6 +47,7 @@ public:
     void tidy();
     void rest();
 
+    void hi();
 
     void walk();
     void run(float x, float y);

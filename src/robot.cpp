@@ -159,6 +159,50 @@ void Robot::rest() {
     moveLegs({}, targets, false, 0, 2);
 }
 
+void Robot::hi() {
+    std::array<std::array<float, 3UL>, 4UL> pos = getLegsPositions();
+    std::array<float, 3UL> frPos = pos[1];
+    std::array<float, 3UL> rlPos = pos[3];
+    frPos[2] -= 80.0f;
+    rlPos[2] += 80.0f;
+    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {
+        {LegID::FL, pos[0]}, // FL
+        {LegID::FR, frPos}, // FR
+        {LegID::RR, pos[2]}, // RR
+        {LegID::RL, rlPos}  // RL
+    };
+    moveLegs({}, targets, true, 0.0f, 40);
+    
+
+    std::array<std::array<float, 3UL>, 4UL> posb = getLegsPositions();
+    std::array<float, 3UL> frPos = pos[1];
+    frPos[2] += 80.0f;
+    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {
+        {LegID::FL, posb[0]}, // FL
+        {LegID::FR, frPos}, // FR
+        {LegID::RR, posb[2]}, // RR
+        {LegID::RL, posb[3]}  // RL
+    };
+    moveLegs({}, targets, true, 0.0f, 20);
+
+    auto a = legs[1].getAngles();
+    legs[1].setAngles(a[0], a[1], 1.57/2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    legs[1].setAngles(a[0], a[1], 1.57);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    legs[1].setAngles(a[0], a[1], 1.57/2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    legs[1].setAngles(a[0], a[1], a[2]);
+
+    std::vector<std::pair<LegID, std::array<float, 3>>> targets = {
+        {LegID::FL, pos[0]}, // FL
+        {LegID::FR, pos[1]}, // FR
+        {LegID::RR, pos[2]}, // RR
+        {LegID::RL, pos[3]}  // RL
+    };
+    moveLegs({}, targets, true, 0.0f, 40);
+}
+
 // Walk forward
 void Robot::walk() {
     float h = WALKING_BODY_HEIGHT;
@@ -256,10 +300,10 @@ float Robot::computeZOffset(LegID leg, float x, float y) {
     int i = static_cast<int>(leg);
 
     switch (i) {
-        case 0: break; // ???????
-        case 1: x = y;
-        case 2: x = -x;
-        case 3: x = -y;
+        case 0: break; // No necessary transformation
+        case 1: x = y; break; // FR : exchanging x and y
+        case 2: x = -x; break; // RR : inversing x
+        case 3: x = -y; break; // RL : inversing y
     }
 
     return (i < 2) ? tanAngle * (x + CHASSIS * 0.5f) : -tanAngle * (x + CHASSIS * 0.5f);
