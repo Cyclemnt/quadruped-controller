@@ -32,6 +32,16 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
     else if (cmd == "run_stop") {
         next_mode = IDLE;
     }
+    else if (cmd.rfind("watch_vector:", 0) == 0) {
+        std::string data = cmd.substr(11);
+        float jx = 0, jy = 0;
+        sscanf(data.c_str(), "%f,%f", &jx, &jy);
+        last_la_vector = {jx, jy};
+        next_mode = LOOK_AROUND;
+    }
+    else if (cmd == "watch_stop") {
+        next_mode = IDLE;
+    }
 
     else if (cmd == "turn_left_start") next_mode = TURN_LEFT;
     else if (cmd == "turn_left_stop") next_mode = IDLE;
@@ -88,6 +98,7 @@ void RobotServer::loop() {
         // Exécution du mode courant
         switch (current_mode.load()) {
             case RUN: steve.run(last_vector.first, last_vector.second); break;
+            case LOOK_AROUND: steve.lookAround(last_la_vector.first, last_la_vector.second); break;
             case TURN_LEFT: steve.turn(true); break;
             case TURN_RIGHT: steve.turn(false); break;
             case STABILIZE: steve.level(); break;

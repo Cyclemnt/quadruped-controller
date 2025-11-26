@@ -14,7 +14,7 @@ typedef websocketpp::server<websocketpp::config::asio> server;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-enum RobotMode { IDLE, RUN, TURN_LEFT, TURN_RIGHT, STABILIZE };
+enum RobotMode { IDLE, RUN, LOOK_AROUND, TURN_LEFT, TURN_RIGHT, STABILIZE };
 
 class RobotServer {
 public:
@@ -34,6 +34,7 @@ private:
     std::atomic<RobotMode> current_mode;
     std::atomic<RobotMode> next_mode;
     std::pair<float, float> last_vector{0.0f, 0.0f};
+    std::pair<float, float> last_la_vector{0.0f, 0.0f};
     std::thread loop_thread;
 };
 
