@@ -7,6 +7,7 @@
 #include <functional>
 #include <thread>
 #include <atomic>
+#include <mutex>
 
 using websocketpp::connection_hdl;
 typedef websocketpp::server<websocketpp::config::asio> server;
@@ -14,7 +15,8 @@ typedef websocketpp::server<websocketpp::config::asio> server;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-enum RobotMode { IDLE, RUN, LOOK_AROUND, TURN_LEFT, TURN_RIGHT, STABILIZE };
+enum RobotMode { IDLE, RUN, TURN_ANGLE, LOOK, STABILIZE };
+enum PendingAction { PA_NONE = 0, PA_SET_HEIGHT, PA_SET_PITCH, PA_HI, PA_EMERGENCY, PA_RESTORE_LOOK };
 
 class RobotServer {
 public:
@@ -33,8 +35,24 @@ private:
     server s;
     std::atomic<RobotMode> current_mode;
     std::atomic<RobotMode> next_mode;
-    std::pair<float, float> last_vector{0.0f, 0.0f};
-    std::pair<float, float> last_la_vector{0.0f, 0.0f};
+
+    // Shared state protected by mtx
+    std::mutex mtx;
+    std::pair<float, float> last_vector{0.0f, 0.0f}; // run joystick x,y
+    float last_turn_angle{0.0f};                     // degrees, + left, - right
+    std::pair<float, float> last_look{0.0f, 0.0f};   // look joystick jx,jy in [-1,1]
+
+    // pending actions (executed in loop when safe)
+    std::atomic<int> pending_action;
+    float pending_value{0.0f}; // for set_height / set_pitch
+
+    // look restore helper
+    bool look_restore_pending{false};
+    float prev_chassis_yaw{0.0f}, prev_chassis_pitch{0.0f}, prev_chassis_roll{0.0f};
+
+    // our internal estimate of chassis pose (kept in sync with commands we send)
+    float chassisYaw{0.0f}, chassisPitch{0.0f}, chassisRoll{0.0f};
+
     std::thread loop_thread;
 };
 

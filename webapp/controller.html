@@ -3,230 +3,171 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S.T.E.V.E Controller</title>
+  <title>S.T.E.V.E Controller — Responsive (triangle layout)</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Roboto+Mono&display=swap" rel="stylesheet" />
   <style>
-    body {
-      margin: 0; height: 100vh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #0f0f0f, #2a2a2a);
-      font-family: 'Roboto Mono', monospace;
-      color: #d0d6db;
+    :root{
+      --bg1:#0f0f0f; --bg2:#2a2a2a; --panel:#121212; --accent:#00eaff; --ok:#00cc66; --danger:#ff4d4d; --glass:rgba(0,68,102,0.35);
     }
-    h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-weight: 500; font-size: 2rem; color: #00eaff;
-      text-shadow: 0 0 15px #00eaff88; margin-bottom: 1rem;
-    }
-    .status { display:flex; align-items:center; gap:10px; margin-bottom:20px; color:#5a7a9a; }
-    .led { width:16px; height:16px; border-radius:50%;
-      background:#aa0000; box-shadow:0 0 6px #aa0000aa; }
-    .led.connected { background:#00cc66; box-shadow:0 0 12px #00cc66cc; }
-
-    .layout {
-      display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start; justify-content:center;
+    html,body{height:100%;}
+    body{
+      margin:0; padding:16px; box-sizing:border-box;
+      display:flex; flex-direction:column; align-items:center;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));
+      font-family:'Roboto Mono',monospace; color:#d0d6db;
+      -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
     }
 
-    .controller {
-      display:grid;
-      grid-template-columns:70px 70px 70px;
-      grid-template-rows:70px 70px 70px;
-      gap:10px; background:#121212;
-      padding:20px; border-radius:20px;
-      box-shadow: inset 0 0 10px #005577aa, 0 0 15px #0088ffaa;
-      border:2px solid #004466;
-    }
-    button {
-      background:linear-gradient(145deg,#2e2e2e,#1a1a1a);
-      border:none; border-radius:12px;
-      box-shadow: inset 2px 2px 4px #0a0a0a, inset -2px -2px 5px #404040, 2px 2px 5px #000000bb;
-      color:#00eaff; font-size:1rem; font-weight:bold;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition: all .2s;
-      text-align:center;
-    }
-    button:hover { color:#66faff; transform:translateY(-2px); }
-    button:active { transform:translateY(1px); color:#00bbdd; }
+    h1{ font-family:'Orbitron',sans-serif; font-size:clamp(1.2rem,2.4vw,1.9rem); color:var(--accent); margin:8px 0 10px; }
+    .status{ display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+    .led{ width:14px; height:14px; border-radius:50%; background:#aa0000; box-shadow:0 0 6px #aa0000aa; }
+    .led.connected{ background:var(--ok); box-shadow:0 0 12px #00cc66cc; }
 
-    .up    { grid-column:2; grid-row:1; }
-    .left  { grid-column:1; grid-row:2; }
-    .center{ grid-column:2; grid-row:2; }
-    .right { grid-column:3; grid-row:2; }
-    .down  { grid-column:2; grid-row:3; }
+    /* Container that groups joysticks + stabilize button */
+    .controls-wrap{ width:100%; max-width:980px; display:flex; flex-direction:column; align-items:center; gap:18px; box-sizing:border-box; }
 
-    .sliders {
-      background:#121212;
-      padding:20px;
-      border-radius:20px;
-      box-shadow: inset 0 0 10px #004466aa, 0 0 15px #00eaff66;
-      border:2px solid #003344;
-      width:250px;
+    /* Joysticks grid - default three in a row centered */
+    .joysticks-grid{
+      width:100%; display:grid; justify-content:center; gap:18px;
+      grid-template-columns: repeat(3, minmax(180px, 260px)); grid-auto-rows:auto; justify-items:center; align-items:start;
     }
-    .slider-container {
-      margin-bottom:20px;
-    }
-    .slider-container label {
-      display:flex; justify-content:space-between;
-      font-size:14px; margin-bottom:5px;
-    }
-    input[type=range] { width:100%; }
-    .value { font-weight:bold; color:#00ff99; }
 
-    .reset-btn {
-      margin-top:10px;
-      width:100%;
-      background:#ff4d4d;
-      border:none;
-      padding:12px;
-      border-radius:12px;
-      font-size:14px;
-      font-weight:bold;
-      cursor:pointer;
-      transition:0.2s;
-      color:#fff;
-    }
-    .reset-btn:hover { background:#cc0000; }
+    .joystick-card{ display:flex; flex-direction:column; gap:10px; align-items:center; }
+    .js-label{ font-size:13px; color:#9ec7dd; text-transform:uppercase; letter-spacing:0.06em; }
 
-    /* --- Joystick --- */
-    .joystick-container {
-      width: 200px; height: 200px;
-      background: #121212;
-      border-radius: 50%;
-      position: relative;
-      border: 2px solid #004466;
-      box-shadow: inset 0 0 10px #005577aa, 0 0 15px #0088ffaa;
-      touch-action: none;
+    .joystick-container{ --size:clamp(140px,22vw,240px); width:var(--size); height:var(--size); background:var(--panel); border-radius:50%; position:relative; border:2px solid var(--glass); box-shadow: inset 0 0 10px rgba(0,80,120,0.2), 0 0 10px rgba(0,140,180,0.08); display:flex; align-items:center; justify-content:center; touch-action:none; }
+    .joystick-handle{ width:34%; height:34%; background:radial-gradient(circle,var(--accent),#004466); border-radius:50%; position:absolute; left:33%; top:33%; transition:0.04s; box-shadow:0 0 14px #00eaff88; }
+
+    /* Stabilize button centered under joysticks */
+    .stab-row{ display:flex; justify-content:center; width:100%; }
+    .stab-btn{ width:76px; height:76px; border-radius:50%; background:linear-gradient(145deg,#2e2e2e,#1a1a1a); border:none; color:var(--accent); font-weight:900; font-size:1.4rem; display:flex; align-items:center; justify-content:center; box-shadow: 2px 4px 8px rgba(0,0,0,0.6); }
+
+    /* Sliders & actions box - ensure it never exceeds viewport and doesn't cause horizontal scroll */
+    .slab{ width:100%; max-width:920px; box-sizing:border-box; display:flex; justify-content:center; }
+    .sliders{ width:100%; max-width:420px; background:var(--panel); padding:14px; border-radius:12px; box-shadow: inset 0 0 10px rgba(0,68,102,0.12), 0 0 10px rgba(0,120,200,0.06); border:2px solid var(--glass); margin-bottom:18px; }
+    .slider-container{ margin-bottom:12px; }
+    .slider-container label{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+    input[type=range]{ width:100%; }
+    .value{ font-weight:700; color:#00ff99; }
+
+    .actions-row{ display:flex; gap:8px; width:100%; }
+    .actions-row button{ flex:1; padding:10px; border-radius:10px; font-weight:700; border:none; cursor:pointer; }
+    .reset-btn{ background:var(--danger); color:white; }
+    .emg-btn{ background:#444; color:white; }
+    .hi-btn{ background:linear-gradient(145deg,#0aa,#058); color:white; }
+
+    /* Responsive layouts:
+       - >=1000px: three in row (already set)
+       - 700..999px: triangle: first joystick centered on top row (spans 2 cols), two others on second row
+       - <700px: vertical stack, all centered, stabilize below joysticks
+    */
+    @media (max-width:999px){
+      .joysticks-grid{ grid-template-columns: repeat(2, minmax(160px,1fr)); grid-template-areas: "run run" "look turn"; }
+      /* set areas via classes */
+      .js-run{ grid-area: run; }
+      .js-look{ grid-area: look; }
+      .js-turn{ grid-area: turn; }
     }
-    .joystick-handle {
-      width: 70px; height: 70px;
-      background: radial-gradient(circle, #00eaff, #004466);
-      border-radius: 50%;
-      position: absolute;
-      left: 65px; top: 65px;
-      transition: 0.05s;
-      box-shadow: 0 0 15px #00eaff88;
+    @media (max-width:699px){
+      .joysticks-grid{ grid-template-columns: 1fr; grid-template-areas: "run" "look" "turn"; }
+      .joystick-container{ --size: clamp(180px, 40vw, 260px); }
+      .stab-btn{ width:64px; height:64px; font-size:1.1rem; }
+      .sliders{ max-width:calc(100% - 24px); margin-left:auto; margin-right:auto; }
     }
+
+    /* avoid horizontal scroll on very narrow devices */
+    body{ overflow-x:hidden; padding-bottom:28px; }
   </style>
 </head>
 <body>
-  <h1>S.T.E.V.E Controller</h1>
+  <h1>Contrôleur S.T.E.V.E</h1>
+  <div class="status"><div id="led" class="led"></div><div id="status-text">Déconnecté</div></div>
 
-  <div class="status">
-    <div id="led" class="led"></div>
-    <div id="status-text">Disconnected</div>
+  <div class="controls-wrap">
+    <div class="joysticks-grid">
+      <div class="joystick-card js-run">
+        <div class="js-label">Run</div>
+        <div class="joystick-container" id="joystick-run"><div class="joystick-handle" id="joystick-run-handle"></div></div>
+      </div>
+
+      <div class="joystick-card js-look">
+        <div class="js-label">Look</div>
+        <div class="joystick-container" id="joystick-look"><div class="joystick-handle" id="joystick-look-handle"></div></div>
+      </div>
+
+      <div class="joystick-card js-turn">
+        <div class="js-label">Turn</div>
+        <div class="joystick-container" id="joystick-turn"><div class="joystick-handle" id="joystick-turn-handle"></div></div>
+      </div>
+    </div>
+
+    <!-- Stabilize button centered below the three joysticks -->
+    <div class="stab-row"><button class="stab-btn" id="stab-btn"
+        onmousedown="send('stabilize_start')" onmouseup="send('stabilize_stop')"
+        ontouchstart="send('stabilize_start')" ontouchend="send('stabilize_stop')">=</button></div>
+
   </div>
 
-  <div class="layout">
-    <!-- Flèches tourner -->
-    <div class="controller">
-	<button class="left"
-	    onmousedown="send('turn_left_start')" onmouseup="send('turn_left_stop')"
-    	    ontouchstart="send('turn_left_start')" ontouchend="send('turn_left_stop')">◄</button>
+  <!-- sliders + actions box, never wider than viewport and with bottom margin -->
+  <div class="slab"><div class="sliders">
+      <div class="slider-container"><label>Body Height (120–220): <span id="heightValue" class="value">120</span></label>
+        <input id="heightSlider" type="range" min="120" max="220" value="120" oninput="updateValue('heightValue', this.value); send('set_height:' + this.value)"></div>
 
-  	<button class="center"
-    	    onmousedown="send('stabilize_start')" onmouseup="send('stabilize_stop')"
-    	    ontouchstart="send('stabilize_start')" ontouchend="send('stabilize_stop')">=</button>
+      <div class="slider-container"><label>Pitch (+|-10): <span id="pitchValue" class="value">0</span></label>
+        <input id="pitchSlider" type="range" min="-10" max="10" value="0" oninput="updateValue('pitchValue', this.value); send('set_pitch:' + this.value)"></div>
 
-  	<button class="right"
-    	    onmousedown="send('turn_right_start')" onmouseup="send('turn_right_stop')"
-    	    ontouchstart="send('turn_right_start')" ontouchend="send('turn_right_stop')">►</button>
-    </div>
-
-    <!-- Joystick -->
-    <div class="joystick-container" id="joystick">
-      <div class="joystick-handle" id="joystick-handle"></div>
-    </div>
-
-    <!-- Sliders -->
-    <div class="sliders">
-      <div class="slider-container">
-        <label>Body Height (120–220): <span id="heightValue" class="value">120</span></label>
-        <input id="heightSlider" type="range" min="120" max="220" value="120"
-          oninput="updateValue('heightValue', this.value); send('set_height:' + this.value)">
+      <div style="height:8px"></div>
+      <div class="actions-row">
+        <button class="reset-btn" onclick="resetDefaults()">🔄 Reset</button>
+        <button class="emg-btn" onclick="send('emergency_stop')">🛑 Emergency</button>
+        <button class="hi-btn" onclick="send('hi')">👋 Hi</button>
       </div>
-      <div class="slider-container">
-        <label>Turning Step Angle (5–45): <span id="stepAngleValue" class="value">15</span></label>
-        <input id="stepAngleSlider" type="range" min="5" max="45" value="15"
-          oninput="updateValue('stepAngleValue', this.value); send('set_step_angle:' + this.value)">
-      </div>
-      <button class="reset-btn" onclick="resetDefaults()">🔄 Reset Defaults</button>
-      <button class="reset-btn" onclick="send('emergency_stop')">🛑 Emergency Stop</button>
-    </div>
-  </div>
+    </div></div>
 
   <script>
-    let ws = new WebSocket(`ws://172.29.74.179:9002`); // Pi IP here
+    let ws = new WebSocket(`ws://${location.hostname}:9002`);
+    ws.onerror = (err) => { console.log("WS error:", err); };
+    ws.onclose = (e) => { console.log("WS closed:", e); };
+
     const led = document.getElementById('led');
     const statusText = document.getElementById('status-text');
 
-    ws.onopen = () => {
-      led.classList.add("connected");
-      statusText.textContent = "Connected";
-      statusText.style.color = "#00cc66";
-    };
-    ws.onclose = () => {
-      led.classList.remove("connected");
-      statusText.textContent = "Disconnected";
-      statusText.style.color = "#aa0000";
-    };
+    ws.onopen = () => { led.classList.add('connected'); statusText.textContent = 'Connecté'; statusText.style.color = '#00cc66'; };
+    ws.onclose = () => { led.classList.remove('connected'); statusText.textContent = 'Déconnecté'; statusText.style.color = '#aa0000'; };
 
-    function send(msg) {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
-    }
-    function updateValue(id, value) {
-      document.getElementById(id).textContent = value;
-    }
-    function resetDefaults() {
-      document.getElementById('heightSlider').value = 120;
-      document.getElementById('stepAngleSlider').value = 15;
-      updateValue('heightValue', 120);
-      updateValue('stepAngleValue', 15);
-      send('set_height:120');
-      send('set_step_angle:15');
-    }
+    function send(msg){ if (ws && ws.readyState === WebSocket.OPEN) ws.send(msg); }
+    function updateValue(id, value){ document.getElementById(id).textContent = value; }
+    function resetDefaults(){ document.getElementById('heightSlider').value = 120; document.getElementById('pitchSlider').value = 0; updateValue('heightValue',120); updateValue('pitchValue',0); send('set_height:120'); send('set_pitch:0'); }
 
-    /* === Joystick === */
-    const joystick = document.getElementById('joystick');
-    const handle = document.getElementById('joystick-handle');
-    const radius = 100; // rayon du conteneur / 2
-    let active = false;
+    function createJoystick(containerId, handleId, onMove, onRelease){
+      const joystick = document.getElementById(containerId);
+      const handle = document.getElementById(handleId);
+      let active=false;
 
-    function sendVector(x, y) {
-      send(`run_vector:${x.toFixed(2)},${y.toFixed(2)}`);
+      function center(){ const rect = joystick.getBoundingClientRect(); handle.style.left = (rect.width - handle.clientWidth)/2 + 'px'; handle.style.top = (rect.height - handle.clientHeight)/2 + 'px'; }
+
+      function moveHandle(clientX, clientY){ const rect = joystick.getBoundingClientRect(); const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2; let dx = clientX - cx; let dy = clientY - cy; const maxDistance = rect.width/2 - handle.clientWidth/2; const rawDist = Math.hypot(dx,dy); const dist = Math.min(rawDist, maxDistance); const angle = Math.atan2(dy,dx); const x = rect.width/2 - handle.clientWidth/2 + Math.cos(angle)*dist; const y = rect.height/2 - handle.clientHeight/2 + Math.sin(angle)*dist; handle.style.left = x + 'px'; handle.style.top = y + 'px'; const relX = Math.cos(angle)*dist; const relY = Math.sin(angle)*dist; const nx = relX / maxDistance; const ny = relY / maxDistance; onMove(nx, ny, maxDistance, relX, relY); }
+
+      joystick.addEventListener('mousedown', e=>{ active=true; moveHandle(e.clientX,e.clientY); });
+      joystick.addEventListener('mousemove', e=>{ if(active) moveHandle(e.clientX,e.clientY); });
+      window.addEventListener('mouseup', ()=>{ if(active){ active=false; center(); onRelease(); }});
+
+      joystick.addEventListener('touchstart', e=>{ active=true; moveHandle(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); });
+      joystick.addEventListener('touchmove', e=>{ if(active){ moveHandle(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); }});
+      joystick.addEventListener('touchend', ()=>{ if(active){ active=false; center(); onRelease(); }});
+
+      center(); window.addEventListener('resize', center);
     }
 
-    function stopVector() {
-      send('run_stop');
-      handle.style.left = '65px';
-      handle.style.top = '65px';
-    }
+    // RUN mapping
+    createJoystick('joystick-run','joystick-run-handle',(nx,ny,maxDistance,relX,relY)=>{ const robotX=-relY; const robotY=-relX; const rx=Math.max(-1,Math.min(1,robotX)); const ry=Math.max(-1,Math.min(1,robotY)); send(`run_vector:${rx.toFixed(2)},${ry.toFixed(2)}`); }, ()=>{ send('run_stop'); });
 
-    function moveHandle(clientX, clientY) {
-      const rect = joystick.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
+    // LOOK mapping
+    createJoystick('joystick-look','joystick-look-handle',(nx,ny)=>{ const jx=-nx; const jy=-ny; send(`look_vector:${jx.toFixed(2)},${jy.toFixed(2)}`); }, ()=>{ send('look_stop'); });
 
-      let dx = clientX - cx;
-      let dy = clientY - cy;
-      const dist = Math.min(Math.sqrt(dx * dx + dy * dy), radius - 35);
-      const angle = Math.atan2(dy, dx);
-      const x = 0 - dy;
-      const y = 0 - dx;
+    // TURN mapping (horizontal only -> -45..+45)
+    createJoystick('joystick-turn','joystick-turn-handle',(nx,ny,maxDistance,relX,relY)=>{ const norm = - (relX / maxDistance); const dead=0.05; const n = Math.abs(norm) < dead ? 0 : Math.max(-1,Math.min(1,norm)); const angle = n*45.0; send(`turn_angle:${angle.toFixed(2)}`); }, ()=>{ send('turn_stop'); });
 
-      handle.style.left = `${65 + Math.cos(angle) * dist}px`;
-      handle.style.top = `${65 + Math.sin(angle) * dist}px`;
-
-      sendVector(x, y);
-    }
-
-    joystick.addEventListener('mousedown', e => { active = true; moveHandle(e.clientX, e.clientY); });
-    joystick.addEventListener('mousemove', e => { if (active) moveHandle(e.clientX, e.clientY); });
-    window.addEventListener('mouseup', () => { if (active) { active = false; stopVector(); }});
-
-    joystick.addEventListener('touchstart', e => { active = true; moveHandle(e.touches[0].clientX, e.touches[0].clientY); });
-    joystick.addEventListener('touchmove', e => { if (active) moveHandle(e.touches[0].clientX, e.touches[0].clientY); });
-    joystick.addEventListener('touchend', () => { active = false; stopVector(); });
   </script>
 </body>
 </html>
