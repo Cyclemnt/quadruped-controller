@@ -65,6 +65,11 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
         steve.tidy();
         //exit(0);
     }
+    else if (cmd == "hi") {
+        std::cout << "Emote hi" << std::endl;
+        steve.hi();
+        //exit(0);
+    }
 }
 
 void RobotServer::loop() {
