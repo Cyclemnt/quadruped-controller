@@ -79,6 +79,7 @@ public:
                             float targetX = 0.0f, float targetY = 0.0f, float targetZ = NAN,
                             int steps = 20);
     void lookAround(float jx, float jy, float maxYawDeg = 20.0f, float maxPitchDeg = 12.0f, int steps = 8);
+    // void lookAroundInstant(float jx, float jy, float maxYawDeg, float maxPitchDeg);
 };
 
 #endif // ROBOT_HPP

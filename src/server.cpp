@@ -147,16 +147,6 @@ void RobotServer::loop() {
                 catch (const std::exception &e) { std::cerr << "Error stopRunning: " << e.what() << std::endl; }
             }
 
-            // If we are entering LOOK for the first time, save current chassis estimated pose so we can restore later
-            if (nm == LOOK && cm != LOOK) {
-                // store prev chassis pose for restoring later
-                std::lock_guard<std::mutex> lock(mtx);
-                prev_chassis_yaw = chassisYaw;
-                prev_chassis_pitch = chassisPitch;
-                prev_chassis_roll = chassisRoll;
-                look_restore_pending = false; // ensure clear
-            }
-
             // If we are leaving LOOK and restore was requested, perform restore now (blocking)
             if (cm == LOOK && nm != LOOK) {
                 bool doRestore = false;
@@ -169,14 +159,10 @@ void RobotServer::loop() {
                     std::cout << "Restoring chassis pose after LOOK" << std::endl;
                     // Use orientChassisTo to restore smoothly
                     try {
-                        steve.orientChassisTo(prev_chassis_yaw, prev_chassis_pitch, prev_chassis_roll,  /*targetX*/0.0f, /*targetY*/0.0f, std::numeric_limits<float>::quiet_NaN(), /*steps*/20);
+                        steve.lookAround(0.0f, 0.0f);
                     } catch (const std::exception &e) {
                         std::cerr << "Error during look restore: " << e.what() << std::endl;
                     }
-                    // update our estimate
-                    chassisYaw = prev_chassis_yaw;
-                    chassisPitch = prev_chassis_pitch;
-                    chassisRoll = prev_chassis_roll;
                 }
             }
 
@@ -245,9 +231,6 @@ void RobotServer::loop() {
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     angleDeg = last_turn_angle;
-                    // read our current estimate of pitch/roll
-                    pitchLocal = chassisPitch;
-                    rollLocal = chassisRoll;
                 }
                 // Map: angleDeg already absolute in degrees; orient chassis yaw only (keep pitch/roll)
                 try {
@@ -265,18 +248,9 @@ void RobotServer::loop() {
                     jx = last_look.first;
                     jy = last_look.second;
                 }
-                // Map joystick [-1,1] to yaw/pitch degrees
-                const float maxYaw = 45.0f;   // deg
-                const float maxPitch = 12.0f; // deg
-                float targetYaw = jx * maxYaw;
-                float targetPitch = jy * maxPitch;
                 try {
                     // use small steps to remain responsive
-                    steve.orientChassisTo(targetYaw, targetPitch, 0.0f, 0.0f, 0.0f, std::numeric_limits<float>::quiet_NaN(), 3);
-                    // update estimate
-                    chassisYaw = targetYaw;
-                    chassisPitch = targetPitch;
-                    chassisRoll = 0.0f;
+                    steve.lookAround(jx, jy);
                 } catch (const std::exception &e) {
                     std::cerr << "Error in LOOK orient: " << e.what() << std::endl;
                 }

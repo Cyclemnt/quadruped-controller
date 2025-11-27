@@ -49,18 +49,19 @@ static std::array<std::array<float,3>,3> transposeMat(const std::array<std::arra
 // Orient the chassis to absolute yaw/pitch/roll (degrees), keeping toe world positions fixed.
 // - targetYawDeg, targetPitchDeg, targetRollDeg are absolute angles (deg).
 // - steps controls interpolation smoothness. Use small steps for smoother motion.
+// --- orientChassisTo corrigée ---
 void Robot::orientChassisTo(float targetYawDeg, float targetPitchDeg, float targetRollDeg,
                             float targetX, float targetY, float targetZ,
                             int steps) {
-    // If targetZ not provided, use current bodyHeight as Z target.
-    if (std::isnan(targetZ)) targetZ = bodyHeight;
+    // detecter si caller a passé un targetZ valide
+    const bool hasTargetZ = !std::isnan(targetZ);
 
-    // Clamp reasonable ranges (optionnel)
+    // Clamp raisonnable
     targetPitchDeg = std::clamp(targetPitchDeg, -30.0f, 30.0f);
     targetYawDeg   = std::clamp(targetYawDeg,   -45.0f, 45.0f);
     targetRollDeg  = std::clamp(targetRollDeg,  -30.0f, 30.0f);
 
-    // Save start states
+    // états de départ
     const float startYaw   = chassisYawDeg;
     const float startPitch = chassisPitchDeg;
     const float startRoll  = chassisRollDeg;
@@ -68,72 +69,85 @@ void Robot::orientChassisTo(float targetYawDeg, float targetPitchDeg, float targ
     const float startY = chassisY;
     const float startZ = bodyHeight;
 
-    // Precompute start rotation matrix
+    // matrice de départ
     auto Rstart = buildRotationMatrix(startYaw, startPitch, startRoll);
 
-    // read the positions of feet in *chassis frame at start*
-    auto pStart = getLegsPositions(); // array[4] of {x,y,z} in chassis frame
-    // compute world positions of feet at start: p_world = Rstart * pStart + Tstart
+    // positions de pieds dans le repère châssis au départ
+    auto pStart = getLegsPositions();
+
+    // positions world des pieds au départ : p_world = Rstart * pStart + Tstart
     std::array<std::array<float,3>,4> pWorld{};
     std::array<float,3> Tstart = { startX, startY, startZ };
-    for (int i=0;i<4;i++) {
+    for (int i = 0; i < 4; ++i) {
         auto rotated = matMul(Rstart, pStart[i]);
         pWorld[i] = { rotated[0] + Tstart[0], rotated[1] + Tstart[1], rotated[2] + Tstart[2] };
     }
 
-    // Interpolate
+    // interpolation
     for (int s = 1; s <= steps; ++s) {
         float t = static_cast<float>(s) / steps;
+
         float curYaw   = startYaw   + (targetYawDeg   - startYaw)   * t;
         float curPitch = startPitch + (targetPitchDeg - startPitch) * t;
         float curRoll  = startRoll  + (targetRollDeg  - startRoll)  * t;
         float curX = startX + (targetX - startX) * t;
         float curY = startY + (targetY - startY) * t;
-        float curZ = startZ + (targetZ - startZ) * t;
+        float curZ = hasTargetZ ? (startZ + (targetZ - startZ) * t) : startZ;
 
+        // --- CRUCIAL : mettre à jour l'état interne AVANT moveLegs ---
+        // setPitch effectue le clamp et met pitch utilisé par computeZOffset
+        chassisPitchDeg = curPitch;
+        pitch = curPitch;   // si ta variable interne s'appelle "pitch"
+        chassisYawDeg  = curYaw;          // pour cohérence si d'autres code lisent ça
+        chassisRollDeg = curRoll;
+        chassisX = curX;
+        chassisY = curY;
+        // note : on ne change pas bodyHeight ici, on le fera à la fin si hasTargetZ
+
+        // calculer la rotation courante et son inverse
         auto Rcur = buildRotationMatrix(curYaw, curPitch, curRoll);
-        auto RcurT = transposeMat(Rcur); // inverse rotation
+        auto RcurT = transposeMat(Rcur);
 
-        std::array<std::pair<LegID,std::array<float,3>>, 4> targetsArr{};
-        for (int i=0;i<4;i++) {
-            std::array<float,3> world = pWorld[i];
-            // p_body_new = Rcur^T * (p_world - Tcur)
-            std::array<float,3> diff = { world[0] - curX, world[1] - curY, world[2] - curZ };
-            auto newBodyPos = matMul(RcurT, diff);
-
-            targetsArr[i] = { static_cast<LegID>(i), newBodyPos };
-        }
-
-        // convert to vector<vectorpairs> for moveLegs
+        // recalculer pour chaque jambe la position en repère châssis qui laissera
+        // la toe au même endroit pWorld[i], pour la pose courante (Rcur, Tcur)
         std::vector<std::pair<LegID,std::array<float,3>>> targets;
         targets.reserve(4);
-        for (auto &tp : targetsArr) targets.push_back(tp);
 
-        // IMPORTANT: these targets are in chassis frame that we are commanding -> transformTarget=false
-        moveLegs({}, targets, false, 0.0f, 1); // 1 step inside moveLegs (we already interpolate), no arc
-        // small delay already handled in moveLegs via STANDARD_DELAY
+        for (int i = 0; i < 4; ++i) {
+            std::array<float,3> world = pWorld[i];
+            std::array<float,3> diff = { world[0] - curX, world[1] - curY, world[2] - curZ };
+            auto newBodyPos = matMul(RcurT, diff);
+            targets.push_back({ static_cast<LegID>(i), newBodyPos });
+        }
+
+        // Passer les targets aux jambes. transformTarget=false (targets déjà dans repère châssis)
+        moveLegs({}, targets, false, 0.0f, 1);
+        // moveLegs contient déjà un sleep (STANDARD_DELAY),
+        // donc pas besoin d'un sleep supplémentaire ici
     }
 
-    // Update stored chassis pose to target
+    // Mise à jour finale : appliquer bodyHeight seulement si on avait targetZ
+    if (hasTargetZ) setBodyHeight(targetZ);
+    // mettre à jour angles stockés
     chassisYawDeg = targetYawDeg;
     chassisPitchDeg = targetPitchDeg;
     chassisRollDeg = targetRollDeg;
     chassisX = targetX;
     chassisY = targetY;
-    setBodyHeight(targetZ); // keep bodyHeight in sync
 }
 
-// Convenience: joystick mapper (jx,jy in [-1,1]) to look around.
-// jx -> yaw (left/right), jy -> pitch (up/down). roll fixed at 0 for simplicity.
+// --- lookAround corrigée (mapping joystick -> orientChassisTo) ---
 void Robot::lookAround(float jx, float jy, float maxYawDeg, float maxPitchDeg, int steps) {
-    // clamp inputs
     jx = std::clamp(jx, -1.0f, 1.0f);
     jy = std::clamp(jy, -1.0f, 1.0f);
-
-    float targetYaw = jx * maxYawDeg;
+float mag = std::sqrt(jx * jx + jy * jy);
+jx /= mag; jy /= mag;
+    float targetYaw   = jx * maxYawDeg;
     float targetPitch = jy * maxPitchDeg;
-    float targetRoll = 0.0f; // keep roll neutral; you can map another axis if needed
+    float targetRoll  = 0.0f;
 
-    // call orientChassisTo (this will interpolate smoothly)
-    orientChassisTo(targetYaw, targetPitch, targetRoll, 0.0f, 0.0f, std::numeric_limits<float>::quiet_NaN(), steps);
+    // IMPORTANT: on ne passe PAS de targetZ (NaN) pour signifier "ne pas changer la translation Z"
+    orientChassisTo(targetYaw, targetPitch, targetRoll,
+                    chassisX, chassisY, std::numeric_limits<float>::quiet_NaN(),
+                    steps);
 }

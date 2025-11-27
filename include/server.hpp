@@ -48,10 +48,6 @@ private:
 
     // look restore helper
     bool look_restore_pending{false};
-    float prev_chassis_yaw{0.0f}, prev_chassis_pitch{0.0f}, prev_chassis_roll{0.0f};
-
-    // our internal estimate of chassis pose (kept in sync with commands we send)
-    float chassisYaw{0.0f}, chassisPitch{0.0f}, chassisRoll{0.0f};
 
     std::thread loop_thread;
 };
