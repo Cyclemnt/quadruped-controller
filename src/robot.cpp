@@ -15,7 +15,7 @@ Robot::Robot(PCA9685* driver, BNO055* imu_, Stabilizer* stabilizer_)
             Leg(LegID::RR, driver, {6, 7, 8}),
             Leg(LegID::RL, driver, {9,10,11})
         }},
-      imu(imu_), stabilizer(stabilizer_), bodyHeight(RESTING_H), runningStepSize(RUNNING_STEP_SIZE), turningStepAngle(TURNING_ANGLE_A_STEP_COVERS) {}
+      imu(imu_), stabilizer(stabilizer_), bodyHeight(RESTING_H), runningStepSize(RUNNING_STEP_SIZE) {}
 
 Robot::~Robot() {
     tidy();
@@ -204,22 +204,24 @@ void Robot::hi() {
     // 4) Tourner progressivement le dernier axe (joint 3) du FR
     auto anglesStart = legs[1].getAngles();
     float startA3 = anglesStart[2];
-    float peakA3  = startA3 - (M_PIf / 2.0f); // tourner de +90° (1.5708)
-    // monter à peak
-    for (int s = 1; s <= stepsRotate; ++s) {
-        float t = static_cast<float>(s) / stepsRotate;
-        float a3 = startA3 + (peakA3 - startA3) * t;
-        legs[1].setAngles(anglesStart[0], anglesStart[1], a3);
-        std::this_thread::sleep_for(sleepMs);
-    }
-    // redescendre à startA3
-    for (int s = 1; s <= stepsRotate; ++s) {
-        float t = static_cast<float>(s) / stepsRotate;
-        float a3 = peakA3 + (startA3 - peakA3) * t;
-        legs[1].setAngles(anglesStart[0], anglesStart[1], a3);
-        std::this_thread::sleep_for(sleepMs);
-    }
+    float peakA3  = startA3 - (M_PIf / 8.0f); // tourner de +90° (1.5708)
 
+    for (int iii = 0; iii < 3; ++iii) {
+        // monter à peak
+        for (int s = 1; s <= stepsRotate; ++s) {
+            float t = static_cast<float>(s) / stepsRotate;
+            float a3 = startA3 + (peakA3 - startA3) * t;
+            legs[1].setAngles(anglesStart[0], anglesStart[1], a3);
+            std::this_thread::sleep_for(sleepMs);
+        }
+        // redescendre à startA3
+        for (int s = 1; s <= stepsRotate; ++s) {
+            float t = static_cast<float>(s) / stepsRotate;
+            float a3 = peakA3 + (startA3 - peakA3) * t;
+            legs[1].setAngles(anglesStart[0], anglesStart[1], a3);
+            std::this_thread::sleep_for(sleepMs);
+        }
+    }
     // 5) Rétablir FR à sa position après inclinaison (descendre le pied levé)
     // on ramène le FR au z d'avant levée (posAfterTilt[1][2])
     std::array<float,3> frBack = frAfter; // z = posAfterTilt[1][2]
@@ -311,14 +313,11 @@ void Robot::stopRunning() {
 }
 
 // Turn left
-void Robot::turn(bool left) {
-    const float angle = left ? turningStepAngle : -turningStepAngle;
-
-    //rest();
+void Robot::turn(float turningStepAngle) {
     std::vector<LegID> a = {LegID::FL, LegID::RR};
     std::vector<LegID> b = {LegID::FR, LegID::RL};
-    rotateLegs(a, b, angle); // FL and RR lifted and going clockwise
-    rotateLegs(b, a, angle); // FR and RL lifted and going clockwise
+    rotateLegs(a, b, turningStepAngle); // FL and RR lifted and going clockwise
+    rotateLegs(b, a, turningStepAngle); // FR and RL lifted and going clockwise
 }
 
 void Robot::level() {
@@ -363,7 +362,7 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
 
 void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, -220.0f, -120.0f); }
 void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 20.0f, 60.0f); }
-void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = std::clamp(newAngle, 5.0f, 30.0f); }
+// void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = std::clamp(newAngle, 5.0f, 30.0f); }
 
 void Robot::setPitch(float angleDeg) { pitch = std::clamp(angleDeg, -20.0f, 20.0f); }
 

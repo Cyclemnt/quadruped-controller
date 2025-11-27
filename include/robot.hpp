@@ -21,7 +21,7 @@ private:
 
     std::chrono::steady_clock::time_point lastUpdate;
 
-    float bodyHeight, runningStepSize, turningStepAngle;
+    float bodyHeight, runningStepSize;//, turningStepAngle;
     std::array<float, 4> zOffset;
     float pitch; 
 
@@ -61,7 +61,7 @@ public:
     // void walk();
     void run(float x, float y);
     void stopRunning();
-    void turn(bool left);
+    void turn(float turningStepAngle = 15.0f);
 
     void level();
 
@@ -70,7 +70,7 @@ public:
 
     void setBodyHeight(float newHeight);
     void setRunningStepSize(float newSize);
-    void setTurningStepAngle(float newAngle);
+    // void setTurningStepAngle(float newAngle);
     void setPitch(float angleDeg);
     float computeZOffset(LegID leg, float x, float y);
 

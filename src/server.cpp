@@ -251,10 +251,7 @@ void RobotServer::loop() {
                 }
                 // Map: angleDeg already absolute in degrees; orient chassis yaw only (keep pitch/roll)
                 try {
-                    // use small steps so we can be responsive; this call is blocking but short
-                    steve.orientChassisTo(angleDeg, pitchLocal, rollLocal, 0.0f, 0.0f, std::numeric_limits<float>::quiet_NaN(), 3);
-                    // update internal estimate
-                    chassisYaw = angleDeg;
+                    steve.turn(angleDeg);
                 } catch (const std::exception &e) {
                     std::cerr << "Error in TURN_ANGLE orient: " << e.what() << std::endl;
                 }
