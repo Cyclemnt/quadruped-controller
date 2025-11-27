@@ -160,13 +160,50 @@
     }
 
     // RUN mapping
-    createJoystick('joystick-run','joystick-run-handle',(nx,ny,maxDistance,relX,relY)=>{ const robotX=-relY; const robotY=-relX; const rx=Math.max(-1,Math.min(1,robotX)); const ry=Math.max(-1,Math.min(1,robotY)); send(`run_vector:${rx.toFixed(2)},${ry.toFixed(2)}`); }, ()=>{ send('run_stop'); });
+    createJoystick('joystick-run', 'joystick-run-handle', (nx, ny, maxDistance, relX, relY) => {
+        // Calculer la distance entre le centre et la position du joystick
+        const dist = Math.sqrt(relX * relX + relY * relY);  // distance du centre (magnitude)
+        
+        // Si la distance est plus grande que la distance maximale autorisée, on la normalise
+        if (dist > 1) {
+            const angle = Math.atan2(relY, relX);  // angle en radians
+            relX = Math.cos(angle);  // recalculer les coordonnées normalisées
+            relY = Math.sin(angle);
+        }
+
+        // Inverser les axes pour correspondre aux commandes du robot
+        const robotX = -relY; // relY est l'axe X du robot (avancer/reculer)
+        const robotY = -relX; // relX devient l'axe Y du robot (gauche/droite)
+
+        // Normaliser les coordonnées entre -1 et 1
+        const rx = Math.max(-1, Math.min(1, robotX)); // pas plus de -1 à 1
+        const ry = Math.max(-1, Math.min(1, robotY)); // pas plus de -1 à 1
+
+        // Envoyer le vecteur au robot
+        send(`run_vector:${rx.toFixed(2)},${ry.toFixed(2)}`);
+    }, () => { send('run_stop'); });
 
     // LOOK mapping
-    createJoystick('joystick-look','joystick-look-handle',(nx,ny)=>{ const jx=-nx; const jy=-ny; send(`look_vector:${jx.toFixed(2)},${jy.toFixed(2)}`); }, ()=>{ send('look_stop'); });
+    createJoystick('joystick-look','joystick-look-handle', (nx, ny) => {
+      const dist = Math.sqrt(nx * nx + ny * ny);  // distance du centre (magnitude)
+      if (dist > 1) {
+        const angle = Math.atan2(ny, nx);  // angle en radians
+        nx = Math.cos(angle);  // recalculer les coordonnées normalisées
+        ny = Math.sin(angle);
+      }
+      const jx=-nx;
+      const jy=-ny;
+      send(`look_vector:${jx.toFixed(2)},${jy.toFixed(2)}`);
+    }, () => { send('look_stop'); });
 
     // TURN mapping (horizontal only -> -45..+45)
-    createJoystick('joystick-turn','joystick-turn-handle',(nx,ny,maxDistance,relX,relY)=>{ const norm = - (relX / maxDistance); const dead=0.05; const n = Math.abs(norm) < dead ? 0 : Math.max(-1,Math.min(1,norm)); const angle = n*45.0; send(`turn_angle:${angle.toFixed(2)}`); }, ()=>{ send('turn_stop'); });
+    createJoystick('joystick-turn','joystick-turn-handle', (nx, ny, maxDistance, relX, relY) => {
+      const norm = - (relX / maxDistance);
+      const dead=0.05;
+      const n = Math.abs(norm) < dead ? 0 : Math.max(-1,Math.min(1,norm));
+      const angle = n*45.0;
+      send(`turn_angle:${angle.toFixed(2)}`);
+    }, ()=>{ send('turn_stop'); });
 
   </script>
 </body>
