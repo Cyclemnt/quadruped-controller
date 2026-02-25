@@ -109,7 +109,8 @@ cmake ..
 make
 
 # Start the server and run the main executable
-cd ../webapp python3 -m http.server 8080 & cd ../build ./main
+cd ..
+cd webapp && python3 -m http.server 8080 & cd build && ./main
 ```
 
 The server will start and listen on the configured port.
@@ -122,5 +123,6 @@ Once running, open the http://\<raspberrypi-ip\>:8080/controller.html page in a 
 
 ## Authors
 This project was developed as part of a Robotics Engineering Master's program at Polytech Dijon by a student team.
-- Controller author: Clément Lamouller
-- Trot gait research: Luan Parizot
+- Simon Ferrier
+- Clément Lamouller
+- Luan Parizot
