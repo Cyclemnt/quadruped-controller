@@ -29,7 +29,7 @@
     /* Joysticks grid - default three in a row centered */
     .joysticks-grid{
       width:100%; display:grid; justify-content:center; gap:18px;
-      grid-template-columns: repeat(3, minmax(180px, 260px)); grid-auto-rows:auto; justify-items:center; align-items:start;
+      grid-template-columns: repeat(2, minmax(180px, 260px)); grid-auto-rows:auto; justify-items:center; align-items:start;
     }
 
     .joystick-card{ display:flex; flex-direction:column; gap:10px; align-items:center; }
@@ -62,14 +62,13 @@
        - <700px: vertical stack, all centered, stabilize below joysticks
     */
     @media (max-width:999px){
-      .joysticks-grid{ grid-template-columns: repeat(2, minmax(160px,1fr)); grid-template-areas: "run run" "look turn"; }
+      .joysticks-grid{ grid-template-columns: repeat(2, minmax(160px,1fr)); grid-template-areas: "run run" "turn turn"; justify-items: center; }
       /* set areas via classes */
       .js-run{ grid-area: run; }
-      .js-look{ grid-area: look; }
       .js-turn{ grid-area: turn; }
     }
     @media (max-width:699px){
-      .joysticks-grid{ grid-template-columns: 1fr; grid-template-areas: "run" "look" "turn"; }
+      .joysticks-grid{ grid-template-columns: 1fr; grid-template-areas: "run" "turn"; }
       .joystick-container{ --size: clamp(180px, 40vw, 260px); }
       .stab-btn{ width:64px; height:64px; font-size:1.1rem; }
       .sliders{ max-width:calc(100% - 24px); margin-left:auto; margin-right:auto; }
@@ -88,11 +87,6 @@
       <div class="joystick-card js-run">
         <div class="js-label">Run</div>
         <div class="joystick-container" id="joystick-run"><div class="joystick-handle" id="joystick-run-handle"></div></div>
-      </div>
-
-      <div class="joystick-card js-look">
-        <div class="js-label">Look</div>
-        <div class="joystick-container" id="joystick-look"><div class="joystick-handle" id="joystick-look-handle"></div></div>
       </div>
 
       <div class="joystick-card js-turn">
@@ -182,19 +176,6 @@
         // Envoyer le vecteur au robot
         send(`run_vector:${rx.toFixed(2)},${ry.toFixed(2)}`);
     }, () => { send('run_stop'); });
-
-    // LOOK mapping
-    createJoystick('joystick-look','joystick-look-handle', (nx, ny) => {
-      const dist = Math.sqrt(nx * nx + ny * ny);  // distance du centre (magnitude)
-      if (dist > 1) {
-        const angle = Math.atan2(ny, nx);  // angle en radians
-        nx = Math.cos(angle);  // recalculer les coordonnées normalisées
-        ny = Math.sin(angle);
-      }
-      const jx=-nx;
-      const jy=-ny;
-      send(`look_vector:${jx.toFixed(2)},${jy.toFixed(2)}`);
-    }, () => { send('look_stop'); });
 
     // TURN mapping (horizontal only -> -45..+45)
     createJoystick('joystick-turn','joystick-turn-handle', (nx, ny, maxDistance, relX, relY) => {
