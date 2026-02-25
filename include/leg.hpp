@@ -20,7 +20,7 @@ public:
     void setAngles(float q1, float q2, float q3);
     void reset();
 
-    void checkAngleBounds(float q1, float q2, float q3) const;
+    bool checkAngleBounds(float q1, float q2, float q3) const;
 
     std::array<float, 3> getAngles() const;
 };
