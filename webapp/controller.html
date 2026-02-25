@@ -107,9 +107,6 @@
       <div class="slider-container"><label>Body Height (120–220): <span id="heightValue" class="value">120</span></label>
         <input id="heightSlider" type="range" min="120" max="220" value="120" oninput="updateValue('heightValue', this.value); send('set_height:' + this.value)"></div>
 
-      <div class="slider-container"><label>Pitch (+|-10): <span id="pitchValue" class="value">0</span></label>
-        <input id="pitchSlider" type="range" min="-10" max="10" value="0" oninput="updateValue('pitchValue', this.value); send('set_pitch:' + this.value)"></div>
-
       <div style="height:8px"></div>
       <div class="actions-row">
         <button class="reset-btn" onclick="resetDefaults()">🔄 Reset</button>
@@ -131,7 +128,7 @@
 
     function send(msg){ if (ws && ws.readyState === WebSocket.OPEN) ws.send(msg); }
     function updateValue(id, value){ document.getElementById(id).textContent = value; }
-    function resetDefaults(){ document.getElementById('heightSlider').value = 120; document.getElementById('pitchSlider').value = 0; updateValue('heightValue',120); updateValue('pitchValue',0); send('set_height:120'); send('set_pitch:0'); }
+    function resetDefaults(){ document.getElementById('heightSlider').value = 120; updateValue('heightValue',120); send('set_height:120'); }
 
     function createJoystick(containerId, handleId, onMove, onRelease){
       const joystick = document.getElementById(containerId);
