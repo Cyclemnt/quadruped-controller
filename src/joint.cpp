@@ -12,7 +12,6 @@ int Joint::angleToPWM(float angle) const {
 
 // Set joint to angle
 void Joint::setAngle(float angle) {
-//    if (channel == 5) angle += 0.1f; // BECAUSE OF BAD CONSTRUCTION ON FIRST PROTOTYPE
     if (angle < 0) angle = 0;
     if (angle > servoRange) angle = servoRange;
     int pwm = angleToPWM(angle);
