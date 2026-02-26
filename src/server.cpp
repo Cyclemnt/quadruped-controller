@@ -25,7 +25,7 @@ void RobotServer::run(uint16_t port) {
 
 void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
     std::string cmd = msg->get_payload();
-    std::cout << "Commande reçue: " << cmd << std::endl;
+    std::cout << "new cmd: " << cmd << std::endl;
 
     // run joystick: "run_vector:x,y"  (x,y in [-1,1])
     if (cmd.rfind("run_vector:", 0) == 0) {
@@ -40,35 +40,6 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
         return;
     }
     if (cmd == "run_stop") {
-        next_mode.store(IDLE);
-        return;
-    }
-
-    // look joystick: "look_vector:x,y" and "look_stop"
-    if (cmd.rfind("look_vector:", 0) == 0) {
-        std::string data = cmd.substr(12);
-        float jx=0,jy=0;
-        sscanf(data.c_str(), "%f,%f", &jx, &jy);
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            // on clamp just in case
-            if (jx > 1.0f) jx = 1.0f;
-            if (jx < -1.0f) jx = -1.0f;
-            if (jy > 1.0f) jy = 1.0f;
-            if (jy < -1.0f) jy = -1.0f;
-            last_look = {jx,jy};
-        }
-        // Before first entering LOOK, memorize current chassis pose to be able to restore later
-        // We only set prev_* the first time we transition into LOOK (handled in loop when nm != cm)
-        next_mode.store(LOOK);
-        return;
-    }
-    if (cmd == "look_stop") {
-        // request restore to previous pose once we leave LOOK
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            look_restore_pending = true;
-        }
         next_mode.store(IDLE);
         return;
     }
@@ -111,13 +82,6 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
         next_mode.store(IDLE);
         return;
     }
-    if (cmd.rfind("set_pitch:", 0) == 0) {
-        float value = std::stof(cmd.substr(10)); // -10..10
-        pending_action.store(PA_SET_PITCH);
-        pending_value = value;
-        next_mode.store(IDLE);
-        return;
-    }
 
     // emergency / hi
     if (cmd == "emergency_stop") {
@@ -127,6 +91,11 @@ void RobotServer::on_message(connection_hdl hdl, server::message_ptr msg) {
     }
     if (cmd == "hi") {
         pending_action.store(PA_HI);
+        next_mode.store(IDLE);
+        return;
+    }
+    if (cmd == "stickbug") {
+        pending_action.store(PA_STICKUG);
         next_mode.store(IDLE);
         return;
     }
@@ -142,28 +111,16 @@ void RobotServer::loop() {
         if (nm != cm) {
             // If we are leaving RUN, always call stopRunning() (unless staying in RUN)
             if (cm == RUN && nm != RUN) {
-                std::cout << "Arrêt du run -> stopRunning()" << std::endl;
+                std::cout << "STOP RUN" << std::endl;
                 try { steve.stopRunning(); }
-                catch (const std::exception &e) { std::cerr << "Error stopRunning: " << e.what() << std::endl; }
+                catch (const std::exception &e) { std::cerr << "ERROR in stopRunning(): " << e.what() << std::endl; }
             }
 
-            // If we are leaving LOOK and restore was requested, perform restore now (blocking)
-            if (cm == LOOK && nm != LOOK) {
-                bool doRestore = false;
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    doRestore = look_restore_pending;
-                    look_restore_pending = false;
-                }
-                if (doRestore) {
-                    std::cout << "Restoring chassis pose after LOOK" << std::endl;
-                    // Use orientChassisTo to restore smoothly
-                    try {
-                        steve.lookAround(0.0f, 0.0f);
-                    } catch (const std::exception &e) {
-                        std::cerr << "Error during look restore: " << e.what() << std::endl;
-                    }
-                }
+            // If we are leaving STABILIZE, perform restore now
+            if (cm == STABILIZE && nm != STABILIZE) {
+                std::cout << "STOP STABILIZE" << std::endl;
+                try { steve.rest(); }
+                catch (const std::exception &e) { std::cerr << "ERROR in rest(): " << e.what() << std::endl; }
             }
 
             current_mode.store(nm);
@@ -180,30 +137,22 @@ void RobotServer::loop() {
                         std::lock_guard<std::mutex> lock(mtx);
                         v = pending_value;
                     }
-                    std::cout << "Applying setHeight: " << v << std::endl;
+                    std::cout << "setting body height: " << v << std::endl;
                     // the robot expects negative heights here as before
                     steve.setBodyHeight(-v);
                     steve.rest(); // apply immediately
-                } else if (act == PA_SET_PITCH) {
-                    float v;
-                    {
-                        std::lock_guard<std::mutex> lock(mtx);
-                        v = pending_value;
-                    }
-                    std::cout << "Applying setPitch: " << v << std::endl;
-                    steve.setPitch(v);
-                    steve.rest();
                 } else if (act == PA_HI) {
-                    std::cout << "Executing hi emote" << std::endl;
+                    std::cout << "executing hi emote" << std::endl;
                     steve.hi();
+                } else if (act == PA_STICKUG) {
+                    std::cout << "executing stickbug emote" << std::endl;
+                    steve.stickBug();
                 } else if (act == PA_EMERGENCY) {
-                    std::cout << "Executing emergency stop (tidy)" << std::endl;
+                    std::cout << "executing emergency stop" << std::endl;
                     steve.tidy();
-                } else if (act == PA_RESTORE_LOOK) {
-                    // handled above in transition logic; kept for completeness
                 }
             } catch (const std::exception &e) {
-                std::cerr << "Error performing pending action: " << e.what() << std::endl;
+                std::cerr << "ERROR performing pending action: " << e.what() << std::endl;
             }
             pending_action.store(PA_NONE);
         }
@@ -220,7 +169,7 @@ void RobotServer::loop() {
                 try {
                     steve.run(v.first, v.second);
                 } catch (const std::exception &e) {
-                    std::cerr << "Error in run(): " << e.what() << std::endl;
+                    std::cerr << "ERROR in run(): " << e.what() << std::endl;
                 }
                 break;
             }
@@ -236,23 +185,7 @@ void RobotServer::loop() {
                 try {
                     steve.turn(angleDeg);
                 } catch (const std::exception &e) {
-                    std::cerr << "Error in TURN_ANGLE orient: " << e.what() << std::endl;
-                }
-                break;
-            }
-
-            case LOOK: {
-                float jx, jy;
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    jx = last_look.first;
-                    jy = last_look.second;
-                }
-                try {
-                    // use small steps to remain responsive
-                    steve.lookAround(jx, jy);
-                } catch (const std::exception &e) {
-                    std::cerr << "Error in LOOK orient: " << e.what() << std::endl;
+                    std::cerr << "ERROR in turn(): " << e.what() << std::endl;
                 }
                 break;
             }
@@ -261,10 +194,8 @@ void RobotServer::loop() {
                 try {
                     steve.level(); // blocking stabilizer call
                 } catch (const std::exception &e) {
-                    std::cerr << "Error in level(): " << e.what() << std::endl;
+                    std::cerr << "ERROR in level(): " << e.what() << std::endl;
                 }
-                // after stabilizing, return to IDLE (stabilize is single-shot)
-                next_mode.store(IDLE);
                 break;
             }
 
@@ -274,6 +205,6 @@ void RobotServer::loop() {
                 break;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 }

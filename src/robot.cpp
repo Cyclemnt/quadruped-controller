@@ -231,6 +231,51 @@ void Robot::hi() {
     moveLegs({}, {{LegID::FL, pos[0]}, {LegID::FR, pos[1]}, {LegID::RR, pos[2]}, {LegID::RL, pos[3]}}, false, 0.0f, stepsTilt);
 }
 
+void Robot::stickBug() {
+    // ===== Parameters (tweak freely) =====
+    const float swayAmplitude = 40.0f;     // how far body moves left/right (mm)
+    const int   stepsSway     = 50;        // interpolation steps per half cycle
+    const int   cycles        = 6;         // number of left-right cycles
+    const auto  sleepMs = std::chrono::milliseconds(STANDARD_DELAY);
+
+    // 1) Read current feet positions (world frame)
+    auto pos = getLegsPositions();
+    // indices: 0=FL, 1=FR, 2=RR, 3=RL
+
+    // Helper lambda to shift all legs in Y
+    auto shiftAllX = [&](float dx) {
+        std::vector<std::pair<LegID, std::array<float,3>>> targets;
+
+        for (int i = 0; i < 4; ++i) {
+            std::array<float,3> p = pos[i];
+            p[1] += dx;  // shift in X (left/right axis)
+            targets.emplace_back(static_cast<LegID>(i), p);
+        }
+
+        // transformTarget = false (because pos came from getLegsPositions)
+        moveLegs({}, targets, false, 0.0f, stepsSway);
+    };
+
+    // 2) Perform sway cycles
+    for (int c = 0; c < cycles; ++c) {
+        // Move body right (feet left in robot frame)
+        shiftAllX(+swayAmplitude);
+
+        // Move body left
+        shiftAllX(-swayAmplitude);
+    }
+
+    // 3) Return smoothly to original center
+    std::vector<std::pair<LegID, std::array<float,3>>> resetTargets = {
+        {LegID::FL, pos[0]},
+        {LegID::FR, pos[1]},
+        {LegID::RR, pos[2]},
+        {LegID::RL, pos[3]}
+    };
+
+    moveLegs({}, resetTargets, false, 0.0f, stepsSway);
+}
+
 // Walk forward
 /*
 void Robot::walk() {
@@ -362,9 +407,6 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
 
 void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, -220.0f, -120.0f); }
 void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 20.0f, 60.0f); }
-// void Robot::setTurningStepAngle(float newAngle) { turningStepAngle = std::clamp(newAngle, 5.0f, 30.0f); }
-
-void Robot::setPitch(float angleDeg) { pitch = std::clamp(angleDeg, -20.0f, 20.0f); }
 
 float Robot::computeZOffset(LegID leg, float x, float y) {
     // angleDeg > 0: head up, angleDeg < 0: head down

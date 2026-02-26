@@ -57,6 +57,7 @@ public:
     void rest();
 
     void hi();
+    void stickBug();
 
     // void walk();
     void run(float x, float y);
@@ -70,8 +71,6 @@ public:
 
     void setBodyHeight(float newHeight);
     void setRunningStepSize(float newSize);
-    // void setTurningStepAngle(float newAngle);
-    void setPitch(float angleDeg);
     float computeZOffset(LegID leg, float x, float y);
 
 
