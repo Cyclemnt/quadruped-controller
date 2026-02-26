@@ -21,17 +21,7 @@ private:
 
     std::chrono::steady_clock::time_point lastUpdate;
 
-    float bodyHeight, runningStepSize;//, turningStepAngle;
-    std::array<float, 4> zOffset;
-    float pitch; 
-
-
-    // For vision rotation
-    float chassisYawDeg = 0.0f;   // rotation autour de Z (deg)
-    float chassisPitchDeg = 0.0f; // rotation autour de Y (deg) - même sens que setPitch
-    float chassisRollDeg = 0.0f;  // rotation autour de X (deg)
-    float chassisX = 0.0f;        // translation X du châssis (mm) si besoin
-    float chassisY = 0.0f;        // translation Y du châssis (mm) si besoin
+    float bodyHeight, runningStepSize;
 
 public:
     Robot(PCA9685* driver, BNO055* imu_ = nullptr, Stabilizer* stabilizer_ = nullptr);
@@ -71,14 +61,6 @@ public:
 
     void setBodyHeight(float newHeight);
     void setRunningStepSize(float newSize);
-    float computeZOffset(LegID leg, float x, float y);
-
-
-    void orientChassisTo(float targetYawDeg, float targetPitchDeg, float targetRollDeg,
-                            float targetX = 0.0f, float targetY = 0.0f, float targetZ = NAN,
-                            int steps = 20);
-    void lookAround(float jx, float jy, float maxYawDeg = 20.0f, float maxPitchDeg = 12.0f, int steps = 8);
-    // void lookAroundInstant(float jx, float jy, float maxYawDeg, float maxPitchDeg);
 };
 
 #endif // ROBOT_HPP

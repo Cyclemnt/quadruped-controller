@@ -53,7 +53,7 @@ void Robot::moveLegs(
 
         float x = (1 - t) * pStart[i][0] + t * target[0];
         float y = (1 - t) * pStart[i][1] + t * target[1];
-        float z = (1 - t) * pStart[i][2] + t * target[2] + computeZOffset(static_cast<LegID>(i), x, y);
+        float z = (1 - t) * pStart[i][2] + t * target[2];
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -97,7 +97,7 @@ void Robot::rotateLegs(std::vector<LegID>& legsLifted, std::vector<LegID>& legsF
 
         float x = r * std::cos(theta);
         float y = r * std::sin(theta);
-        float z = bodyHeight + computeZOffset(static_cast<LegID>(i), x, y);
+        float z = bodyHeight;
 
         if (lifted)
             z += liftHeight * (-std::cosh(M_PIf * (t - 0.5f)) + 2.5f) * 0.666667f;
@@ -235,20 +235,19 @@ void Robot::stickBug() {
     // ===== Parameters (tweak freely) =====
     const float swayAmplitude = 40.0f;     // how far body moves left/right (mm)
     const int   stepsSway     = 50;        // interpolation steps per half cycle
-    const int   cycles        = 6;         // number of left-right cycles
-    const auto  sleepMs = std::chrono::milliseconds(STANDARD_DELAY);
+    const int   cycles        = 4;         // number of left-right cycles
 
     // 1) Read current feet positions (world frame)
     auto pos = getLegsPositions();
     // indices: 0=FL, 1=FR, 2=RR, 3=RL
 
     // Helper lambda to shift all legs in Y
-    auto shiftAllX = [&](float dx) {
+    auto shiftAllY = [&](float dy) {
         std::vector<std::pair<LegID, std::array<float,3>>> targets;
 
         for (int i = 0; i < 4; ++i) {
             std::array<float,3> p = pos[i];
-            p[1] += dx;  // shift in X (left/right axis)
+            p[1] += dy;  // shift in X (left/right axis)
             targets.emplace_back(static_cast<LegID>(i), p);
         }
 
@@ -257,13 +256,15 @@ void Robot::stickBug() {
     };
 
     // 2) Perform sway cycles
-    for (int c = 0; c < cycles; ++c) {
+    shiftAllY(-swayAmplitude/2);
+    for (int c = 0; c < cycles - 2; ++c) {
         // Move body right (feet left in robot frame)
-        shiftAllX(+swayAmplitude);
+        shiftAllY(+swayAmplitude);
 
         // Move body left
-        shiftAllX(-swayAmplitude);
+        shiftAllY(-swayAmplitude);
     }
+    shiftAllY(swayAmplitude/2);
 
     // 3) Return smoothly to original center
     std::vector<std::pair<LegID, std::array<float,3>>> resetTargets = {
@@ -377,7 +378,7 @@ void Robot::level() {
     if (dt <= 0) dt = 0.01f;
     lastUpdate = now;
 
-    stabilizer->computeOffsets(euler[2], euler[1] - pitch, dt, positions);
+    stabilizer->computeOffsets(euler[2], euler[1], dt, positions);
 
     // Conversion direct -> moveLegs
     std::vector<std::pair<LegID, std::array<float,3>>> targets;
@@ -407,19 +408,3 @@ std::array<std::array<float, 3>, 4> Robot::getLegsPositions() const {
 
 void Robot::setBodyHeight(float newHeight) { bodyHeight = std::clamp(newHeight, -220.0f, -120.0f); }
 void Robot::setRunningStepSize(float newSize) { runningStepSize = std::clamp(newSize, 20.0f, 60.0f); }
-
-float Robot::computeZOffset(LegID leg, float x, float y) {
-    // angleDeg > 0: head up, angleDeg < 0: head down
-    const float angleRad = pitch * M_PIf / 180.0f;
-    const float tanAngle = std::tan(angleRad);
-    int i = static_cast<int>(leg);
-
-    switch (i) {
-        case 0: break; // No necessary transformation
-        case 1: x = y; break; // FR : exchanging x and y
-        case 2: x = -x; break; // RR : inversing x
-        case 3: x = -y; break; // RL : inversing y
-    }
-
-    return (i < 2) ? tanAngle * (x + CHASSIS * 0.5f) : -tanAngle * (x + CHASSIS * 0.5f);
-}
