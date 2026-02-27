@@ -233,41 +233,47 @@ void Robot::hi() {
 
 void Robot::stickBug() {
     // ===== Parameters (tweak freely) =====
-    const float swayAmplitude = 40.0f;     // how far body moves left/right (mm)
-    const int   stepsSway     = 50;        // interpolation steps per half cycle
+    const float swayAmplitude = 30.0f;     // how far body moves left/right (mm)
+    const int   stepsSway     = 10;        // interpolation steps per half cycle
     const int   cycles        = 4;         // number of left-right cycles
 
     // 1) Read current feet positions (world frame)
     auto pos = getLegsPositions();
     // indices: 0=FL, 1=FR, 2=RR, 3=RL
 
-    // Helper lambda to shift all legs in Y
-    auto shiftAllY = [&](float dy) {
+    // Helper lambda to shift all legs in Y (world coordinate system)
+    auto shiftAllY = [&](float dy, int steps) {
         std::vector<std::pair<LegID, std::array<float,3>>> targets;
 
         for (int i = 0; i < 4; ++i) {
-            std::array<float,3> p = pos[i];
-            p[1] += dy;  // shift in X (left/right axis)
+            std::array<float, 3> p = pos[i];
+
+            switch(static_cast<LegID>(i)) {
+                case LegID::FL: p[1] += dy; break;
+                case LegID::FR: p[0] -= dy; break;
+                case LegID::RR: p[1] -= dy; break;
+                case LegID::RL: p[0] += dy; break;
+            }
+
             targets.emplace_back(static_cast<LegID>(i), p);
         }
 
-        // transformTarget = false (because pos came from getLegsPositions)
-        moveLegs({}, targets, false, 0.0f, stepsSway);
+        moveLegs({}, targets, false, 0.0f, steps);
     };
 
     // 2) Perform sway cycles
-    shiftAllY(-swayAmplitude/2);
+    shiftAllY(-swayAmplitude/2, stepsSway/2); // Start at the left position
     for (int c = 0; c < cycles - 2; ++c) {
-        // Move body right (feet left in robot frame)
-        shiftAllY(+swayAmplitude);
+        // Move body right (feet move left)
+        shiftAllY(+swayAmplitude, stepsSway);
 
-        // Move body left
-        shiftAllY(-swayAmplitude);
+        // Move body left (feet move right)
+        shiftAllY(-swayAmplitude, stepsSway);
     }
-    shiftAllY(swayAmplitude/2);
+    shiftAllY(swayAmplitude/2, stepsSway/2); // End back at the center
 
     // 3) Return smoothly to original center
-    std::vector<std::pair<LegID, std::array<float,3>>> resetTargets = {
+    std::vector<std::pair<LegID, std::array<float, 3>>> resetTargets = {
         {LegID::FL, pos[0]},
         {LegID::FR, pos[1]},
         {LegID::RR, pos[2]},
